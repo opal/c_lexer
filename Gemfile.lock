@@ -1,0 +1,27 @@
+PATH
+  remote: .
+  specs:
+    c_parser (0.1.0)
+      ast (~> 2.4.0)
+      parser (>= 2.5.0)
+    parser (2.5.0.5)
+      ast (~> 2.4.0)
+
+GEM
+  remote: https://rubygems.org/
+  specs:
+    ast (2.4.0)
+    minitest (5.11.3)
+    rake (10.5.0)
+
+PLATFORMS
+  ruby
+
+DEPENDENCIES
+  bundler (~> 1.16)
+  c_parser!
+  minitest (~> 5.10)
+  rake (~> 10.0)
+
+BUNDLED WITH
+   1.16.1
