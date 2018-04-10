@@ -104,6 +104,8 @@ typedef struct lexer_state {
   int dedent_level;
 
   VALUE escape;
+
+  uint cs_before_block_comment;
 } lexer_state;
 
 static void lexer_mark(void*);

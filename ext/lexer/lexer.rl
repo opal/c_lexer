@@ -171,6 +171,8 @@ static VALUE lexer_advance(VALUE self)
   void (*num_xfrm)(lexer_state*, VALUE, long, long); /* numeric suffix-induced transformation */
   lexer_state *state;
   int *stack;
+  VALUE ident_tok;
+  long ident_ts, ident_te;
   Data_Get_Struct(self, lexer_state, state);
 
   if (RARRAY_LEN(state->token_queue) > 0)
@@ -2404,10 +2406,22 @@ void Init_lexer()
         }
       };
 
+      ':' ('&&' | '||') => {
+        fhold; fhold;
+        emit_token(state, tSYMBEG, tok(state, ts, ts + 1), ts, ts + 1);
+        fgoto expr_fname;
+      };
+
       ':' ['"] => { /* ' */
         VALUE type = tok(state, ts, te);
         VALUE delimiter = tok(state, te - 1, te);
         fgoto *push_literal(state, type, delimiter, ts, 0, 0, 0, 0);
+      };
+
+      ':' [!~] '@'
+      => {
+        emit_token(state, tSYMBOL, tok(state, ts + 1, ts + 2), ts, te);
+        fnext expr_end; fbreak;
       };
 
       ':' bareword ambiguous_symbol_suffix => {
@@ -2523,10 +2537,29 @@ void Init_lexer()
 
       call_or_var => local_ident;
 
+      (call_or_var - keyword)
+        % { ident_tok = tok(state, ts, te); ident_ts = ts; ident_te = te; }
+      w_space+ '('
+      => {
+        emit_token(state, tIDENTIFIER, ident_tok, ident_ts, ident_te);
+        p = ident_te - 1;
+
+        if (state->static_env != Qnil &&
+              RTEST(rb_funcall(state->static_env, rb_intern("declared?"), 1, ident_tok)) &&
+              state->version < 25) {
+          fnext expr_endfn;
+        } else {
+          fnext expr_cmdarg;
+        }
+
+        fbreak;
+      };
+
       w_any;
 
       e_heredoc_nl '=begin' ( c_space | c_nl_zlen ) => {
         p = ts - 1;
+        state->cs_before_block_comment = state->cs;
         fgoto line_begin;
       };
 
