@@ -1,5 +1,6 @@
 require 'c_parser/version'
-require 'c_parser/lexer'
+require 'parser'
+require_relative 'lexer'
 
 module CParser
   # Your code goes here...

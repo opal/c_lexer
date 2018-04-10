@@ -2,11 +2,14 @@ require 'bundler/gem_tasks'
 require 'rake/testtask'
 require 'rake/extensiontask'
 
-Rake::TestTask.new do |t|
-  t.ruby_opts  = ["-rc_parser"]
-  t.libs       = %w(test/ lib/ parser/test/ parser/lib/)
-  t.test_files = %w(parser/test/test_lexer.rb parser/test/test_parser.rb)
-  t.warning    = false
+# Rake::TestTask.new do |t|
+#   t.ruby_opts  = ["-rc_parser"]
+#   t.libs       = %w(test/ lib/ parser/test/ parser/lib/)
+#   t.test_files = %w(parser/test/test_lexer.rb parser/test/test_parser.rb)
+#   t.warning    = false
+# end
+task :test do
+  sh 'ruby -Ilib -Itest -Iparser/lib -Iparser/test -rparser -rc_parser parser/test/test_lexer.rb'
 end
 
 Rake::ExtensionTask.new('lexer')
@@ -38,6 +41,6 @@ namespace :c_parser do
   end
 end
 
-task test: ['ruby_parser:generate', 'c_parser:generate', :compile]
+# task test: ['ruby_parser:generate', 'c_parser:generate', :compile]
 
 task :default => [:test]
