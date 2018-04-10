@@ -2862,23 +2862,50 @@ void Init_lexer()
 
       e_rbrace => {
         emit(tRCURLY);
-        stack_state_lexpop(&state->cond);
-        stack_state_lexpop(&state->cmdarg);
+
+        if (state->version < 24) {
+          stack_state_lexpop(&state->cond);
+          stack_state_lexpop(&state->cmdarg);
+        } else {
+          stack_state_pop(&state->cond);
+          stack_state_pop(&state->cmdarg);
+        }
+
         fnext expr_endarg; fbreak;
       };
 
       e_rparen => {
         emit(tRPAREN);
-        stack_state_lexpop(&state->cond);
-        stack_state_lexpop(&state->cmdarg);
+
+        if (state->version < 24) {
+          stack_state_lexpop(&state->cond);
+          stack_state_lexpop(&state->cmdarg);
+        } else {
+          stack_state_pop(&state->cond);
+          stack_state_pop(&state->cmdarg);
+        }
+
         fbreak;
       };
 
       ']' => {
         emit(tRBRACK);
-        stack_state_lexpop(&state->cond);
-        stack_state_lexpop(&state->cmdarg);
-        fnext expr_endarg; fbreak;
+
+        if (state->version < 24) {
+          stack_state_lexpop(&state->cond);
+          stack_state_lexpop(&state->cmdarg);
+        } else {
+          stack_state_pop(&state->cond);
+          stack_state_pop(&state->cmdarg);
+        }
+
+        if (state->version >= 24) {
+          fnext expr_end;
+        } else {
+          fnext expr_endarg;
+        }
+
+        fbreak;
       };
 
       operator_arithmetic '='
