@@ -213,7 +213,7 @@ static VALUE lexer_advance(VALUE self)
     rb_ary_store(token, 0, Qfalse);
     rb_ary_store(token, 1, info);
     rb_ary_store(info,  0, rb_str_new2("$eof"));
-    rb_ary_store(info,  1, range(state, eof, eof));
+    rb_ary_store(info,  1, range(state, eof - 2, eof - 2));
     return token;
   }
 }
