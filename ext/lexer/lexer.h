@@ -161,7 +161,8 @@ static int pop_literal(lexer_state*);
 static VALUE array_last(VALUE);
 static VALUE unescape_char(char);
 static VALUE escape_char(VALUE);
-static void lex_unicode_points(lexer_state*, long);
+int str_start_with_p(VALUE, const char*);
+int str_end_with_p(VALUE, const char*);
 
 #define emit(type) emit_token(state, type, tok(state, ts, te), ts, te)
 

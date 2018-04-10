@@ -1,5 +1,6 @@
 #include <ruby.h>
 #include <ruby/encoding.h>
+#include <ruby/re.h>
 
 #include <stdint.h>
 #include <stdio.h>
@@ -1096,45 +1097,14 @@ static VALUE escape_char(VALUE str)
   }
 }
 
-static void lex_unicode_points(lexer_state *state, long p)
+int str_start_with_p(VALUE str, const char *pattern)
 {
-  state->escape = rb_str_new2("");
+  return RTEST(rb_funcall(str, rb_intern("start_with?"), 1, rb_str_new2(pattern)));
+}
 
-  long codepoint_s = state->escape_s + 2;
-  long codepoint_e = codepoint_s;
-
-  while (1) {
-    VALUE src_pt = rb_ary_entry(state->source_pts, ++codepoint_e);
-    int c = 0;
-    if (src_pt != Qnil)
-      c = NUM2INT(src_pt);
-
-    if (codepoint_e == p || c == ' ' || c == '\t') {
-      /* extract and decode codepoint */
-      VALUE codepoint_str = tok(state, codepoint_s, codepoint_e);
-
-      int codepoint = NUM2INT(rb_funcall(codepoint_str, rb_intern("to_i"), 1, INT2NUM(16)));
-
-      if (codepoint >= 0x110000) {
-        diagnostic(state, severity_error, unicode_point_too_large, Qnil,
-                   range(state, codepoint_s, codepoint_e - 1), empty_array);
-        return;
-      }
-
-      rb_str_concat(state->escape, rb_enc_uint_chr(codepoint, rb_to_encoding(utf8_encoding)));
-
-      /* look for the beginning of the next codepoint */
-      codepoint_s = codepoint_e;
-      while (1) {
-        if (++codepoint_s >= p)
-          return;
-        c = NUM2INT(rb_ary_entry(state->source_pts, codepoint_s));
-        if (c != ' ' && c != '\t')
-          break;
-      }
-      codepoint_e = codepoint_s;
-    }
-  }
+int str_end_with_p(VALUE str, const char *pattern)
+{
+  return RTEST(rb_funcall(str, rb_intern("start_end?"), 1, rb_str_new2(pattern)));
 }
 
 def_lexer_attribute(diagnostics);
@@ -1500,6 +1470,61 @@ void Init_lexer()
 
   escaped_nl = "\\" c_nl;
 
+  action unicode_points {
+    state->escape = rb_str_new2("");
+
+    VALUE codepoints = tok(state, state->escape_s + 2, p - 1);
+    long codepoint_s = state->escape_s + 2;
+
+    VALUE regexp;
+
+    if (state->version < 24) {
+      if (str_start_with_p(codepoints, " ") || str_start_with_p(codepoints, "\t")) {
+        diagnostic(state, severity_error, invalid_unicode_escape, Qnil,
+                     range(state, state->escape_s + 2, state->escape_s + 3), empty_array);
+      }
+
+      regexp = rb_reg_regcomp(rb_str_new2("[ \t]{2}"));
+      long space_p = rb_funcall(codepoints, rb_intern("index"), 1, regexp);
+
+      if (space_p) {
+        diagnostic(state, severity_error, invalid_unicode_escape, Qnil,
+                     range(state, codepoint_s + space_p + 1, codepoint_s + space_p + 1), empty_array);
+      }
+
+      if (str_end_with_p(codepoints, " ") || str_end_with_p(codepoints, "\t")) {
+        diagnostic(state, severity_error, invalid_unicode_escape, Qnil,
+                     range(state, p - 1, p), empty_array);
+      }
+    }
+
+    regexp = rb_reg_regcomp(rb_str_new2("([0-9a-fA-F]+)|([ \t]+)"));
+
+    VALUE matches = rb_funcall(codepoints, rb_intern("scan"), 1, regexp);
+    long len = RARRAY_LEN(matches);
+
+    for (long i = 0; i < len; i++) {
+      VALUE match = RARRAY_AREF(matches, i);
+      VALUE codepoint_str = RARRAY_AREF(match, 0);
+      VALUE spaces = RARRAY_AREF(match, 1);
+
+      if (RTEST(spaces)) {
+        codepoint_s += RSTRING_LEN(spaces);
+      } else {
+        VALUE codepoint = rb_funcall(codepoint_str, rb_intern("to_i"), 1, INT2NUM(16));
+        if (NUM2INT(codepoint) >= 0x110000) {
+          diagnostic(state, severity_error, unicode_point_too_large, Qnil,
+                     range(state, codepoint_s, codepoint_s + RSTRING_LEN(codepoint_str)), empty_array);
+          break;
+        }
+
+        codepoint = rb_funcall(codepoint, rb_intern("chr"), 1, utf8_encoding);
+        state->escape = rb_funcall(state->escape, rb_intern("+"), 1, codepoint);
+        codepoint_s += RSTRING_LEN(codepoint_str);
+      }
+    }
+  }
+
   action unescape_char {
     char c = NUM2INT(rb_ary_entry(state->source_pts, p - 1));
     state->escape = unescape_char(c);
@@ -1549,38 +1574,40 @@ void Init_lexer()
         rb_funcall(state->escape, rb_intern("force_encoding"), 1, state->encoding);
       }
 
-    | 'u' xdigit{4} % {
-        VALUE token = tok(state, state->escape_s + 1, p);
-        int i = NUM2INT(rb_funcall(token, rb_intern("to_i"), 1, INT2NUM(16)));
-        state->escape = rb_enc_uint_chr(i, rb_to_encoding(utf8_encoding));
-      }
-
     | 'x' ( c_any - xdigit )
       % {
         diagnostic(state, fatal, invalid_hex_escape, Qnil,
                    range(state, state->escape_s - 1, p + 2), empty_array);
       }
 
-    | 'u' ( c_any{0,4}  -
-            xdigit{4}   -
-            ( '{' xdigit{1,3}
-            | '{' xdigit [ \t}] any?
-            | '{' xdigit{2} [ \t}]
-            )
-          )
-      % {
+    | 'u' xdigit{4} % {
+        VALUE token = tok(state, state->escape_s + 1, p);
+        int i = NUM2INT(rb_funcall(token, rb_intern("to_i"), 1, INT2NUM(16)));
+        state->escape = rb_enc_uint_chr(i, rb_to_encoding(utf8_encoding));
+      }
+
+    | 'u' xdigit{0,3} % {
         diagnostic(state, fatal, invalid_unicode_escape, Qnil,
                    range(state, state->escape_s - 1, p), empty_array);
       }
 
-    | 'u{' ( xdigit{1,6} [ \t] )*
-      ( xdigit{1,6} '}' % { lex_unicode_points(state, p); }
-      | ( xdigit* ( c_any - xdigit - '}' )+ '}'
-        | ( c_any - '}' )* c_eof
-        | xdigit{7,}
+    | 'u{' ( c_any - xdigit - [ \t}] )* '}' % {
+        diagnostic(state, fatal, invalid_unicode_escape, Qnil,
+                   range(state, state->escape_s - 1, p), empty_array);
+      }
+
+    | 'u{' [ \t]* ( xdigit{1,6} [ \t]+ )*
+      (
+        ( xdigit{1,6} [ \t]* '}'
+          %unicode_points
+        )
+        |
+        ( xdigit* ( c_any - xdigit - [ \t}] )+ '}'
+          | ( c_any - [ \t}] )* c_eof
+          | xdigit{7,}
         ) % {
-          diagnostic(state, fatal, unterminated_unicode, Qnil,
-                     range(state, p - 1, p), empty_array);
+          diagnostic(state, fatal, invalid_unicode_escape, Qnil,
+                   range(state, p - 1, p), empty_array);
         }
       )
 
