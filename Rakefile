@@ -2,8 +2,6 @@ require 'bundler/gem_tasks'
 require 'rake/testtask'
 require 'rake/extensiontask'
 
-task :default => [:test]
-
 Rake::TestTask.new do |t|
   t.ruby_opts  = ["-rc_parser"]
   t.libs       = %w(test/ lib/ parser/test/ parser/lib/)
@@ -11,19 +9,27 @@ Rake::TestTask.new do |t|
   t.warning    = false
 end
 
-Rake::ExtensionTask.new 'lexer' do |ext|
-  ext.lib_dir = 'lib/c_parser'
-end
-task :compile => 'ext/lexer/lexer.c'
+Rake::ExtensionTask.new('lexer')
 
-desc "'rake generate' in the Ruby Parser"
-task :generate do
-  `cd parser && rake generate`
+namespace :ruby_parser do
+  desc "'rake generate' in the Ruby Parser"
+  task :generate do
+    sh 'cd parser && rake generate'
+  end
+
+  desc "'rake clean' in the Ruby Parser"
+  task :clean do
+    sh 'cd parser && rake clean'
+  end
 end
 
-desc "'rake clean' in the Ruby Parser"
-task :clean do
-  `cd parser && rake clean`
+namespace :c_parser do
+  desc 'Generate lexer.c from lexer.rl'
+  task :generate do
+    sh 'ragel -F1 ext/lexer/lexer.rl -o ext/lexer/lexer.c'
+  end
 end
 
-task :test => [:generate]
+task test: ['ruby_parser:generate', 'c_parser:generate', :compile]
+
+task :default => [:test]
