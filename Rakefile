@@ -41,6 +41,6 @@ namespace :c_parser do
   end
 end
 
-# task test: ['ruby_parser:generate', 'c_parser:generate', :compile]
+task test: ['ruby_parser:generate', 'c_parser:generate', :compile]
 
 task :default => [:test]

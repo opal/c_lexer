@@ -194,6 +194,7 @@ static VALUE lexer_advance(VALUE self)
   if (RARRAY_LEN(state->token_queue) > 0) {
     return rb_ary_shift(state->token_queue);
   } else if (cs == lex_error) {
+    // TODO: consider using rb_ary_new3(long n, ...n values)
     VALUE token = rb_ary_new2(2);
     VALUE info  = rb_ary_new2(2);
     rb_ary_store(token, 0, Qfalse);
@@ -330,6 +331,7 @@ static VALUE lexer_get_state(VALUE self)
   case lex_en_expr_endarg:   return ID2SYM(rb_intern("expr_endarg"));
   case lex_en_expr_endfn:    return ID2SYM(rb_intern("expr_endfn"));
   case lex_en_expr_labelarg: return ID2SYM(rb_intern("expr_labelarg"));
+
   case lex_en_interp_string: return ID2SYM(rb_intern("interp_string"));
   case lex_en_interp_words:  return ID2SYM(rb_intern("interp_words"));
   case lex_en_plain_string:  return ID2SYM(rb_intern("plain_string"));
@@ -369,6 +371,7 @@ static VALUE lexer_set_state(VALUE self, VALUE state_sym)
     state->cs = lex_en_expr_endfn;
   else if (strcmp(state_name, "expr_labelarg") == 0)
     state->cs = lex_en_expr_labelarg;
+
   else if (strcmp(state_name, "interp_string") == 0)
     state->cs = lex_en_interp_string;
   else if (strcmp(state_name, "interp_words") == 0)
@@ -415,50 +418,50 @@ static VALUE lexer_do_nothing(VALUE self, VALUE arg)
   return arg;
 }
 
-static void literal_init(literal *lit, lexer_state *lexer, VALUE str_type,
+static void literal_init(literal *self, lexer_state *lexer, VALUE str_type,
                          VALUE delimiter, long str_s, long heredoc_e, int indent,
                          int dedent_body, int label_allowed)
 {
-  lit->lexer = lexer;
-  lit->nesting = 1;
-  lit->str_type = literal_string_to_str_type(str_type);
+  self->lexer = lexer;
+  self->nesting = 1;
+  self->str_type = literal_string_to_str_type(str_type);
 
-  if (lit->str_type == INVALID) {
+  if (self->str_type == INVALID) {
     VALUE hash = rb_hash_new();
     rb_hash_aset(hash, ID2SYM(rb_intern("type")), str_type);
     diagnostic(lexer, severity_error, unexpected_percent_str, hash,
                range(lexer, str_s, str_s + 2), empty_array);
   }
 
-  literal_set_start_tok_and_interpolate(lit, lit->str_type);
+  literal_set_start_tok_and_interpolate(self, self->str_type);
 
-  lit->str_s = str_s;
+  self->str_s = str_s;
 
-  lit->start_delim = literal_get_start_delim(delimiter);
-  lit->end_delim   = literal_get_end_delim(delimiter);
-  lit->delimiter   = delimiter;
+  self->start_delim = literal_get_start_delim(delimiter);
+  self->end_delim   = literal_get_end_delim(delimiter);
+  self->delimiter   = delimiter;
 
-  lit->herebody_s = 0;
-  lit->heredoc_e = heredoc_e;
-  lit->indent = indent;
-  lit->label_allowed = label_allowed;
-  lit->dedent_body = dedent_body;
-  lit->dedent_level = -1;
-  lit->interp_braces = 0;
-  lit->space_emitted = 1;
-  lit->monolithic = (lit->start_tok == tSTRING_BEG &&
-                     (lit->str_type == SINGLE_QUOTE ||
-                      lit->str_type == DOUBLE_QUOTE) &&
+  self->herebody_s = 0;
+  self->heredoc_e = heredoc_e;
+  self->indent = indent;
+  self->label_allowed = label_allowed;
+  self->dedent_body = dedent_body;
+  self->dedent_level = -1;
+  self->interp_braces = 0;
+  self->space_emitted = 1;
+  self->monolithic = (self->start_tok == tSTRING_BEG &&
+                     (self->str_type == SINGLE_QUOTE ||
+                      self->str_type == DOUBLE_QUOTE) &&
                      !heredoc_e);
 
-  lit->buffer   = rb_str_new2("");
-  rb_funcall(lit->buffer, rb_intern("force_encoding"), 1, lexer->encoding);
+  self->buffer   = rb_str_new2("");
+  rb_funcall(self->buffer, rb_intern("force_encoding"), 1, lexer->encoding);
 
-  lit->buffer_s = 0;
-  lit->buffer_e = 0;
+  self->buffer_s = 0;
+  self->buffer_e = 0;
 
-  if (!lit->monolithic) {
-    literal_emit_start_tok(lit);
+  if (!self->monolithic) {
+    literal_emit_start_tok(self);
   }
 }
 
@@ -760,20 +763,20 @@ static void literal_infer_indent_level(literal *lit, VALUE line)
   }
 }
 
-static void emit_token(lexer_state *state, VALUE type, VALUE val, long start, long end)
+static void emit_token(lexer_state *state, VALUE type, VALUE value, long start, long end)
 {
   VALUE token = rb_ary_new2(2);
   VALUE info  = rb_ary_new2(2);
 
   rb_ary_store(token, 0, type);
   rb_ary_store(token, 1, info);
-  rb_ary_store(info,  0, val);
+  rb_ary_store(info,  0, value);
   rb_ary_store(info,  1, range(state, start, end));
+
+  rb_ary_push(state->token_queue, token);
 
   if (state->tokens != Qnil)
     rb_ary_push(state->tokens, token);
-
-  rb_ary_push(state->token_queue, token);
 }
 
 static void emit_comment(lexer_state *state, long start, long end)
@@ -803,7 +806,7 @@ static void emit_do(lexer_state *state, int do_block, long ts, long te)
 {
   if (stack_state_active(&state->cond))
     emit(kDO_COND);
-  else if (do_block || stack_state_active(&state->cmdarg))
+  else if (stack_state_active(&state->cmdarg) || do_block)
     emit(kDO_BLOCK);
   else
     emit(kDO);
