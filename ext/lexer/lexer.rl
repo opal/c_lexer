@@ -163,9 +163,11 @@ static VALUE lexer_set_source_buffer(VALUE self, VALUE buffer)
 
 static VALUE lexer_advance(VALUE self)
 {
-  int p, pe, eof, cs, ts = 0, te = 0, tm = 0, act = 0, top, command_state;
-  int num_digits_s = 0, num_suffix_s = 0, num_base = 0, sharp_s = 0, heredoc_e = 0;
-  void (*num_xfrm)(lexer_state*, VALUE, int, int); /* numeric suffix-induced transformation */
+  int cs, act = 0, top, command_state;
+  int num_base = 0;
+  long p, pe, eof, ts = 0, te = 0, tm = 0, sharp_s = 0, heredoc_e = 0;
+  long num_digits_s = 0, num_suffix_s = 0;
+  void (*num_xfrm)(lexer_state*, VALUE, long, long); /* numeric suffix-induced transformation */
   lexer_state *state;
   int *stack;
   Data_Get_Struct(self, lexer_state, state);
@@ -414,7 +416,7 @@ static VALUE lexer_do_nothing(VALUE self, VALUE arg)
 }
 
 static void literal_init(literal *lit, lexer_state *lexer, VALUE str_type,
-                         VALUE delimiter, int str_s, int heredoc_e, int indent,
+                         VALUE delimiter, long str_s, long heredoc_e, int indent,
                          int dedent_body, int label_allowed)
 {
   lit->lexer = lexer;
@@ -625,7 +627,7 @@ static int literal_munge_escape_p(literal *lit, VALUE character)
   }
 }
 
-static int literal_nest_and_close(literal *lit, VALUE delimiter, int ts, int te,
+static int literal_nest_and_close(literal *lit, VALUE delimiter, long ts, long te,
                                   VALUE lookahead)
 {
   if (lit->start_delim != Qnil && rb_equal(lit->start_delim, delimiter)) {
@@ -673,7 +675,7 @@ static void literal_emit_start_tok(literal *lit)
   if (*RSTRING_PTR(str_type) == '%')
     rb_str_concat(str_type, lit->delimiter);
 
-  int str_e = lit->heredoc_e;
+  long str_e = lit->heredoc_e;
   if (str_e == 0)
     str_e = lit->str_s + NUM2INT(rb_str_length(str_type));
 
@@ -690,7 +692,7 @@ static int literal_end_interp_brace_and_close(literal *lit)
   return --lit->interp_braces == 0;
 }
 
-static void literal_extend_string(literal *lit, VALUE str, int ts, int te)
+static void literal_extend_string(literal *lit, VALUE str, long ts, long te)
 {
   if (!lit->buffer_s)
     lit->buffer_s = ts;
@@ -720,7 +722,7 @@ static void literal_extend_content(literal *lit)
   lit->space_emitted = 0;
 }
 
-static void literal_extend_space(literal *lit, int ts, int te)
+static void literal_extend_space(literal *lit, long ts, long te)
 {
   literal_flush_string(lit);
 
@@ -758,7 +760,7 @@ static void literal_infer_indent_level(literal *lit, VALUE line)
   }
 }
 
-static void emit_token(lexer_state *state, VALUE type, VALUE val, int start, int end)
+static void emit_token(lexer_state *state, VALUE type, VALUE val, long start, long end)
 {
   VALUE token = rb_ary_new2(2);
   VALUE info  = rb_ary_new2(2);
@@ -774,7 +776,7 @@ static void emit_token(lexer_state *state, VALUE type, VALUE val, int start, int
   rb_ary_push(state->token_queue, token);
 }
 
-static void emit_comment(lexer_state *state, int start, int end)
+static void emit_comment(lexer_state *state, long start, long end)
 {
   VALUE rng = Qnil;
 
@@ -797,7 +799,7 @@ static void emit_comment(lexer_state *state, int start, int end)
   }
 }
 
-static void emit_do(lexer_state *state, int do_block, int ts, int te)
+static void emit_do(lexer_state *state, int do_block, long ts, long te)
 {
   if (stack_state_active(&state->cond))
     emit(kDO_COND);
@@ -807,12 +809,12 @@ static void emit_do(lexer_state *state, int do_block, int ts, int te)
     emit(kDO);
 }
 
-static VALUE tok(lexer_state *state, int start, int end)
+static VALUE tok(lexer_state *state, long start, long end)
 {
   return rb_str_substr(state->source, start, end - start);
 }
 
-static VALUE range(lexer_state *state, int start, int end)
+static VALUE range(lexer_state *state, long start, long end)
 {
   VALUE args[3];
   args[0] = state->source_buffer;
@@ -834,7 +836,7 @@ static void diagnostic(lexer_state *state, VALUE type, VALUE reason,
   rb_funcall(state->diagnostics, rb_intern("process"), 1, diagnostic);
 }
 
-static int get_codepoint(lexer_state *state, int p)
+static int get_codepoint(lexer_state *state, long p)
 {
   if (p >= RARRAY_LEN(state->source_pts))
     return 0;
@@ -952,37 +954,37 @@ static int find_8_or_9(VALUE str)
   return -1;
 }
 
-static void emit_int(lexer_state *state, VALUE val, int start, int end)
+static void emit_int(lexer_state *state, VALUE val, long start, long end)
 {
   emit_token(state, tINTEGER, val, start, end);
 }
 
-static void emit_rational(lexer_state *state, VALUE val, int start, int end)
+static void emit_rational(lexer_state *state, VALUE val, long start, long end)
 {
   emit_token(state, tRATIONAL, rb_funcall(Qnil, rb_intern("Rational"), 1, val),
              start, end);
 }
 
-static void emit_complex(lexer_state *state, VALUE val, int start, int end)
+static void emit_complex(lexer_state *state, VALUE val, long start, long end)
 {
   emit_token(state, tIMAGINARY, rb_funcall(Qnil, rb_intern("Complex"), 2, Qzero, val),
              start, end);
 }
 
-static void emit_complex_rational(lexer_state *state, VALUE val, int start, int end)
+static void emit_complex_rational(lexer_state *state, VALUE val, long start, long end)
 {
   VALUE rational = rb_funcall(Qnil, rb_intern("Rational"), 1, val);
   emit_token(state, tIMAGINARY, rb_funcall(Qnil, rb_intern("Complex"), 2, Qzero, rational),
              start, end);
 }
 
-static void emit_float(lexer_state *state, VALUE val, int start, int end)
+static void emit_float(lexer_state *state, VALUE val, long start, long end)
 {
   emit_token(state, tFLOAT, rb_funcall(Qnil, rb_intern("Float"), 1, val),
              start, end);
 }
 
-static void emit_complex_float(lexer_state *state, VALUE val, int start, int end)
+static void emit_complex_float(lexer_state *state, VALUE val, long start, long end)
 {
   VALUE fval = rb_funcall(Qnil, rb_intern("Float"), 1, val);
   emit_token(state, tIMAGINARY, rb_funcall(Qnil, rb_intern("Complex"), 2, Qzero, fval),
@@ -990,7 +992,7 @@ static void emit_complex_float(lexer_state *state, VALUE val, int start, int end
 }
 
 static int push_literal(lexer_state *state, VALUE str_type, VALUE delimiter,
-                        int str_s, int heredoc_e, int indent, int dedent_body,
+                        long str_s, long heredoc_e, int indent, int dedent_body,
                         int label_allowed)
 {
   literal lit;
@@ -1072,12 +1074,12 @@ static VALUE escape_char(VALUE str)
   }
 }
 
-static void lex_unicode_points(lexer_state *state, int p)
+static void lex_unicode_points(lexer_state *state, long p)
 {
   state->escape = rb_str_new2("");
 
-  int codepoint_s = state->escape_s + 2;
-  int codepoint_e = codepoint_s;
+  long codepoint_s = state->escape_s + 2;
+  long codepoint_e = codepoint_s;
 
   while (1) {
     VALUE src_pt = rb_ary_entry(state->source_pts, ++codepoint_e);
@@ -1642,7 +1644,7 @@ void Init_lexer()
 
   action extend_string_eol {
     literal *current_literal = lit_stack_top(&state->literal_stack);
-    int str_s = current_literal->str_s;
+    long str_s = current_literal->str_s;
 
     if (te == pe) {
       diagnostic(state, fatal, string_eof, Qnil,
@@ -1938,7 +1940,8 @@ void Init_lexer()
         VALUE heredoc = tok(state, ts, heredoc_e);
         VALUE type;
         char *cp = RSTRING_PTR(heredoc);
-        int indent = 0, dedent_body = 0, rng_s = ts, rng_e = heredoc_e;
+        int indent = 0, dedent_body = 0;
+        long rng_s = ts, rng_e = heredoc_e;
 
         if (cp[2] == '-') {
           indent = 1;
@@ -2243,7 +2246,7 @@ void Init_lexer()
           diagnostic(state, severity_error, empty_numeric, Qnil,
                      range(state, ts, te), empty_array);
         } else if (num_base == 8 && (invalid_idx = find_8_or_9(digits)) != -1) {
-          int invalid_s = num_digits_s + invalid_idx;
+          long invalid_s = num_digits_s + invalid_idx;
           diagnostic(state, severity_error, invalid_octal, Qnil,
                      range(state, invalid_s, invalid_s + 1), empty_array);
         }

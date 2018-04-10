@@ -32,8 +32,8 @@ struct lexer_state;
 typedef struct literal {
   struct lexer_state *lexer;
   VALUE buffer;
-  int buffer_s;
-  int buffer_e;
+  long buffer_s;
+  long buffer_e;
 
   int nesting;
 
@@ -45,9 +45,9 @@ typedef struct literal {
   VALUE end_delim;
   VALUE delimiter;
 
-  int heredoc_e;
-  int str_s;
-  int herebody_s;
+  long heredoc_e;
+  long str_s;
+  long herebody_s;
 
   int indent;
   int label_allowed;
@@ -63,8 +63,8 @@ define_stack_type(lit_stack, literal, {0});
 
 typedef struct lexer_state {
   uint cs;               /* DFA state */
-  uint p;                /* stream position */
-  uint pe;               /* end-of-stream position */
+  long p;                /* stream position */
+  long pe;               /* end-of-stream position */
 
   int *cs_stack;
   int cs_stack_top;
@@ -96,10 +96,10 @@ typedef struct lexer_state {
 
   VALUE diagnostics;
 
-  int newline_s;         /* position of last newline encountered */
-  int eq_begin_s;
-  int herebody_s;
-  int escape_s;
+  long newline_s;         /* position of last newline encountered */
+  long eq_begin_s;
+  long herebody_s;
+  long escape_s;
 
   int dedent_level;
 
@@ -110,32 +110,32 @@ static void lexer_mark(void*);
 static void lexer_dealloc(void*);
 static VALUE lexer_reset(int, VALUE*, VALUE);
 
-static void literal_init(literal*, lexer_state*, VALUE, VALUE, int, int, int, int, int);
+static void literal_init(literal*, lexer_state*, VALUE, VALUE, long, long, int, int, int);
 static str_type literal_string_to_str_type(VALUE);
 static VALUE literal_str_type_to_string(str_type);
 static void literal_set_start_tok_and_interpolate(literal*, str_type);
 static VALUE literal_get_start_delim(VALUE);
 static VALUE literal_get_end_delim(VALUE);
 static int  literal_munge_escape_p(literal*, VALUE);
-static int  literal_nest_and_close(literal*, VALUE, int, int, VALUE);
+static int  literal_nest_and_close(literal*, VALUE, long, long, VALUE);
 static void literal_emit_start_tok(literal*);
 static void literal_start_interp_brace(literal*);
 static int  literal_end_interp_brace_and_close(literal*);
-static void literal_extend_string(literal*, VALUE, int, int);
+static void literal_extend_string(literal*, VALUE, long, long);
 static void literal_flush_string(literal*);
 static void literal_extend_content(literal*);
-static void literal_extend_space(literal*, int, int);
+static void literal_extend_space(literal*, long, long);
 static int  literal_words_p(literal*);
 static void literal_infer_indent_level(literal*, VALUE);
 
-static void emit_token(lexer_state*, VALUE, VALUE, int, int);
-static void emit_comment(lexer_state*, int, int);
-static void emit_do(lexer_state*, int, int, int);
+static void emit_token(lexer_state*, VALUE, VALUE, long, long);
+static void emit_comment(lexer_state*, long, long);
+static void emit_do(lexer_state*, int, long, long);
 
-static VALUE tok(lexer_state*, int, int);
-static VALUE range(lexer_state*, int, int);
+static VALUE tok(lexer_state*, long, long);
+static VALUE range(lexer_state*, long, long);
 static void diagnostic(lexer_state*, VALUE, VALUE, VALUE, VALUE, VALUE);
-static int get_codepoint(lexer_state*, int);
+static int get_codepoint(lexer_state*, long);
 static int arg_or_cmdarg(int);
 static int is_nthref(VALUE);
 static int is_backref(VALUE);
@@ -146,18 +146,18 @@ static VALUE find_unknown_options(VALUE);
 static int bad_cvar_name(VALUE);
 static int bad_ivar_name(VALUE);
 static int find_8_or_9(VALUE str);
-static void emit_int(lexer_state*, VALUE, int, int);
-static void emit_rational(lexer_state*, VALUE, int, int);
-static void emit_complex(lexer_state*, VALUE, int, int);
-static void emit_complex_rational(lexer_state*, VALUE, int, int);
-static void emit_float(lexer_state*, VALUE, int, int);
-static void emit_complex_float(lexer_state*, VALUE, int, int);
-static int push_literal(lexer_state*, VALUE, VALUE, int, int, int, int, int);
+static void emit_int(lexer_state*, VALUE, long, long);
+static void emit_rational(lexer_state*, VALUE, long, long);
+static void emit_complex(lexer_state*, VALUE, long, long);
+static void emit_complex_rational(lexer_state*, VALUE, long, long);
+static void emit_float(lexer_state*, VALUE, long, long);
+static void emit_complex_float(lexer_state*, VALUE, long, long);
+static int push_literal(lexer_state*, VALUE, VALUE, long, long, int, int, int);
 static int pop_literal(lexer_state*);
 static VALUE array_last(VALUE);
 static VALUE unescape_char(char);
 static VALUE escape_char(VALUE);
-static void lex_unicode_points(lexer_state*, int);
+static void lex_unicode_points(lexer_state*, long);
 
 #define emit(type) emit_token(state, type, tok(state, ts, te), ts, te)
 
