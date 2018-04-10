@@ -1104,7 +1104,7 @@ int str_start_with_p(VALUE str, const char *pattern)
 
 int str_end_with_p(VALUE str, const char *pattern)
 {
-  return RTEST(rb_funcall(str, rb_intern("start_end?"), 1, rb_str_new2(pattern)));
+  return RTEST(rb_funcall(str, rb_intern("end_with?"), 1, rb_str_new2(pattern)));
 }
 
 def_lexer_attribute(diagnostics);
@@ -1257,7 +1257,7 @@ void Init_lexer()
   init_symbol(tSYMBOLS_BEG);
   init_symbol(tTILDE);
   init_symbol(tUMINUS);
-  init_symbol(tUMINUS_NUM);
+  init_symbol(tUNARY_NUM);
   init_symbol(tUPLUS);
   init_symbol(tWORDS_BEG);
   init_symbol(tXSTRING_BEG);
@@ -1282,6 +1282,8 @@ void Init_lexer()
   init_symbol(invalid_octal);
   init_symbol(invalid_unicode_escape);
   init_symbol(ivar_name);
+  init_symbol(heredoc_id_ends_with_nl);
+  init_symbol(heredoc_id_has_newline);
   init_symbol(no_dot_digit_literal);
   init_symbol(prefix);
   init_symbol(regexp_options);
@@ -2259,7 +2261,16 @@ void Init_lexer()
   *|;
 
   expr_endarg := |*
-      e_lbrace => { emit(tLBRACE_ARG); fnext expr_value; };
+      e_lbrace => {
+        VALUE val = array_last(state->lambda_stack);
+        if (val != Qnil && NUM2INT(val) == state->paren_nest) {
+          rb_ary_pop(state->lambda_stack);
+          emit_token(state, tLAMBEG, rb_str_new2("{"), te - 1, te);
+        } else {
+          emit_token(state, tLBRACE_ARG, rb_str_new2("{"), te - 1, te);
+        }
+        fnext expr_value;
+      };
 
       'do' => { emit_do(state, 1, ts, te); fnext expr_value; fbreak; };
 
@@ -2290,12 +2301,9 @@ void Init_lexer()
   *|;
 
   expr_beg := |*
-      [+\-][0-9] => {
-        fhold;
-        if (get_codepoint(state, ts) == '-') {
-          emit_token(state, tUMINUS_NUM, rb_str_new2("-"), ts, ts + 1);
-          fnext expr_end; fbreak;
-        }
+      [+\-] w_any* [0-9] => {
+        emit_token(state, tUNARY_NUM, tok(state, ts, ts + 1), ts, ts + 1);
+        fhold; fnext expr_end; fbreak;
       };
 
       '*' => { emit(tSTAR); fbreak; };
@@ -2329,9 +2337,9 @@ void Init_lexer()
       };
 
       '<<' [~\-]?
-        ( '"' ( c_line - '"' )* '"'
-        | "'" ( c_line - "'" )* "'"
-        | "`" ( c_line - "`" )* "`"
+        ( '"' ( any - '"' )* '"'
+        | "'" ( any - "'" )* "'"
+        | "`" ( any - "`" )* "`"
         | bareword ) % { heredoc_e = p; }
         c_line* c_nl % { if (!state->herebody_s) state->herebody_s = p; } => {
 
@@ -2354,28 +2362,42 @@ void Init_lexer()
           rng_s += 2;
         }
 
+        if (*cp == '"' || *cp == '\'' || *cp == '`') {
+          char type_str[3];
+          type_str[0] = '<';
+          type_str[1] = '<';
+          type_str[2] = *cp;
+
+          cp += 1;
+          rng_s += 1;
+          rng_e -= 1;
+
+          type = rb_str_new(type_str, 3);
+        } else {
+          type = rb_str_new2("<<\"");
+        }
+
+        VALUE delimiter = tok(state, rng_s, rng_e);
+
+        if (state->version >= 24) {
+          if (NUM2INT(rb_funcall(delimiter, rb_intern("count"), 1, rb_str_new2("\n"))) > 0) {
+            if (str_end_with_p(delimiter, "\n")) {
+              diagnostic(state, warning, heredoc_id_ends_with_nl, Qnil,
+                   range(state, ts, ts + 1), empty_array);
+
+              delimiter = rb_funcall(delimiter, rb_intern("rstrip"), 0);
+            } else {
+              diagnostic(state, fatal, heredoc_id_has_newline, Qnil,
+                   range(state, ts, ts + 1), empty_array);
+            }
+          }
+        }
+
         if (dedent_body && state->version >= 18 && state->version <= 22) {
           emit_token(state, tLSHFT, rb_str_new2("<<"), ts, ts + 2);
           p = ts + 1;
           fnext expr_beg; fbreak;
         } else {
-          if (*cp == '"' || *cp == '\'' || *cp == '`') {
-            char type_str[3];
-            type_str[0] = '<';
-            type_str[1] = '<';
-            type_str[2] = *cp;
-
-            cp += 1;
-            rng_s += 1;
-            rng_e -= 1;
-
-            type = rb_str_new(type_str, 3);
-          } else {
-            type = rb_str_new2("<<\"");
-          }
-
-          VALUE delimiter = tok(state, rng_s, rng_e);
-
           fnext *push_literal(state, type, delimiter, ts, heredoc_e, indent,
                               dedent_body, 0);
           p = state->herebody_s - 1;
