@@ -2082,9 +2082,9 @@ void Init_lexer()
   *|;
 
   expr_endfn := |*
-      label => {
-        emit_token(state, tLABEL, tok(state, ts, te - 1), ts, te);
-        fnext expr_labelarg; fbreak;
+      label ( any - ':' ) => {
+        emit_token(state, tLABEL, tok(state, ts, te - 2), ts, te - 1);
+        fhold; fnext expr_labelarg; fbreak;
       };
 
       w_space_comment;
@@ -2166,12 +2166,12 @@ void Init_lexer()
       w_space* e_lbrace => {
         VALUE val = array_last(state->lambda_stack);
         if (val != Qnil && NUM2INT(val) == state->paren_nest) {
-          p = ts - 1;
-          fgoto expr_end;
+          rb_ary_pop(state->lambda_stack);
+          emit_token(state, tLAMBEG, rb_str_new2("{"), te - 1, te);
         } else {
           emit_token(state, tLCURLY, rb_str_new2("{"), te - 1, te);
-          fnext expr_value; fbreak;
         }
+        fnext expr_value; fbreak;
       };
 
       '?' c_space_nl => { p = ts - 1; fgoto expr_end; };
@@ -2210,6 +2210,7 @@ void Init_lexer()
       w_space* operator_arithmetic
                   ( '=' | c_space_nl )?    |
       w_space* keyword_modifier            |
+      w_space* '&.'                        |
       w_space* punctuation_end
       => {
         p = ts - 1;
