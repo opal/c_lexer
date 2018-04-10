@@ -863,7 +863,7 @@ static int is_nthref(VALUE str)
   c = *p++;
   if (c < '1' || c > '9') return 0;
 
-  while (c = *p++) {
+  while ((c = *p++)) {
     if (c < '0' || c > '9') return 0;
   }
 
@@ -908,7 +908,7 @@ static VALUE find_unknown_options(VALUE str)
   char c, *p = RSTRING_PTR(str);
   VALUE result = Qnil;
 
-  while (c = *p++) {
+  while ((c = *p++)) {
     if (c != 'i' && c != 'm' && c != 'x' && c != 'o' && c != 'u' && c != 'e' &&
         c != 's' && c != 'n') {
       if (result == Qnil) {

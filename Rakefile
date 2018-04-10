@@ -26,7 +26,15 @@ end
 namespace :c_parser do
   desc 'Generate lexer.c from lexer.rl'
   task :generate do
-    sh 'ragel -F1 ext/lexer/lexer.rl -o ext/lexer/lexer.c'
+    source = 'ext/lexer/lexer.rl'
+    target = 'ext/lexer/lexer.c'
+
+    sh "ragel -F1 #{source} -o #{target}"
+
+    # Ragel likes to use int variables where a #define would do
+    src = File.read(target)
+    src.gsub!(/^static const int (\w+) = (\d+);/, '#define \1 \2')
+    File.open(target, 'w') { |f| f.write(src) }
   end
 end
 

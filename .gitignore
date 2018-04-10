@@ -10,4 +10,5 @@
 # rspec failure tracking
 .rspec_status
 ext/lexer/lexer.c
-
+lib/lexer.bundle
+lib/lexer.so
