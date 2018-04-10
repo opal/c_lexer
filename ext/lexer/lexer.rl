@@ -994,6 +994,25 @@ static void emit_complex_float(lexer_state *state, VALUE val, long start, long e
              start, end);
 }
 
+static void emit_int_followed_by_if(lexer_state *state, VALUE val, long start, long end)
+{
+  emit_token(state, tINTEGER, val, start, end);
+}
+
+static void emit_int_followed_by_rescue(lexer_state *state, VALUE val, long start, long end)
+{
+  emit_token(state, tINTEGER, val, start, end);
+}
+
+static void emit_float_followed_by_if(lexer_state *state, VALUE val, long start, long end)
+{
+  emit_token(state, tFLOAT, rb_funcall(Qnil, rb_intern("Float"), 1, val), start, end);
+}
+static void emit_float_followed_by_rescue(lexer_state *state, VALUE val, long start, long end)
+{
+  emit_token(state, tFLOAT, rb_funcall(Qnil, rb_intern("Float"), 1, val), start, end);
+}
+
 static int push_literal(lexer_state *state, VALUE str_type, VALUE delimiter,
                         long str_s, long heredoc_e, int indent, int dedent_body,
                         int label_allowed)
@@ -1461,19 +1480,23 @@ void Init_lexer()
   flo_pow  = [eE] [+\-]? ( digit+ '_' )* digit+;
 
   int_suffix =
-    ''   % { num_xfrm = emit_int; }
-  | 'r'  % { num_xfrm = emit_rational; }
-  | 'i'  % { num_xfrm = emit_complex; }
-  | 'ri' % { num_xfrm = emit_complex_rational; };
+    ''       % { num_xfrm = emit_int; }
+  | 'r'      % { num_xfrm = emit_rational; }
+  | 'i'      % { num_xfrm = emit_complex; }
+  | 'ri'     % { num_xfrm = emit_complex_rational; }
+  | 'if'     % { num_xfrm = emit_int_followed_by_if; p -= 2; }
+  | 'rescue' % { num_xfrm = emit_int_followed_by_rescue; p -= 6; } ;
 
   flo_pow_suffix =
     ''   % { num_xfrm = emit_float; }
-  | 'i'  % { num_xfrm = emit_complex_float; };
+  | 'i'  % { num_xfrm = emit_complex_float; }
+  | 'if' % { num_xfrm = emit_float_followed_by_if; p -= 2; };
 
   flo_suffix =
     flo_pow_suffix
-  | 'r'  % { num_xfrm = emit_rational; }
-  | 'ri' % { num_xfrm = emit_complex_rational; };
+  | 'r'      % { num_xfrm = emit_rational; }
+  | 'ri'     % { num_xfrm = emit_complex_rational; }
+  | 'rescue' % { num_xfrm = emit_float_followed_by_rescue; p -= 6; };
 
   escaped_nl = "\\" c_nl;
 
