@@ -126,6 +126,8 @@ static VALUE lexer_reset(int argc, VALUE *argv, VALUE self)
 
   state->dedent_level = -1;
 
+  state->cs_before_block_comment = lex_en_line_begin;
+
   return self;
 }
 
@@ -2957,7 +2959,7 @@ void Init_lexer()
   line_comment := |*
       '=end' c_line* c_nl_zlen => {
         emit_comment(state, state->eq_begin_s, te);
-        fgoto line_begin;
+        fgoto *state->cs_before_block_comment;
       };
 
       c_line* c_nl;
