@@ -1938,11 +1938,355 @@ void Init_lexer()
 
     if (state->static_env != Qnil &&
         RTEST(rb_funcall(state->static_env, rb_intern("declared?"), 1, str))) {
-      fnext expr_end; fbreak;
+      fnext expr_endfn; fbreak;
     } else {
       fnext *arg_or_cmdarg(command_state); fbreak;
     }
   }
+
+  expr_variable := |*
+      global_var => {
+        VALUE str = tok(state, ts, te);
+
+        if (is_nthref(str)) {
+          VALUE integer = rb_funcall(tok(state, ts + 1, te), rb_intern("to_i"), 0);
+          emit_token(state, tNTH_REF, integer, ts, te);
+        } else if (is_backref(str)) {
+          emit(tBACK_REF);
+        } else {
+          emit(tGVAR);
+        }
+
+        fret; fbreak;
+      };
+
+      class_var_v => {
+        VALUE str = tok(state, ts, te);
+
+        if (bad_cvar_name(str)) {
+          VALUE hash = rb_hash_new();
+          rb_hash_aset(hash, ID2SYM(rb_intern("name")), str);
+          diagnostic(state, severity_error, cvar_name, hash, range(state, ts, te), empty_array);
+        }
+
+        emit(tCVAR);
+        fret; fbreak;
+      };
+
+      instance_var_v => {
+        VALUE str = tok(state, ts, te);
+
+        if (bad_ivar_name(str)) {
+          VALUE hash = rb_hash_new();
+          rb_hash_aset(hash, ID2SYM(rb_intern("name")), str);
+          diagnostic(state, severity_error, ivar_name, hash, range(state, ts, te), empty_array);
+        }
+
+        emit(tIVAR);
+        fret; fbreak;
+      };
+  *|;
+
+  expr_fname := |*
+      'if'           => { emit(kIF);           fnext expr_endfn; fbreak; };
+      'unless'       => { emit(kUNLESS);       fnext expr_endfn; fbreak; };
+      'while'        => { emit(kWHILE);        fnext expr_endfn; fbreak; };
+      'until'        => { emit(kUNTIL);        fnext expr_endfn; fbreak; };
+      'rescue'       => { emit(kRESCUE);       fnext expr_endfn; fbreak; };
+      'yield'        => { emit(kYIELD);        fnext expr_endfn; fbreak; };
+      'super'        => { emit(kSUPER);        fnext expr_endfn; fbreak; };
+      'not'          => { emit(kNOT);          fnext expr_endfn; fbreak; };
+      'defined?'     => { emit(kDEFINED);      fnext expr_endfn; fbreak; };
+      'def'          => { emit(kDEF);          fnext expr_endfn; fbreak; };
+      'undef'        => { emit(kUNDEF);        fnext expr_endfn; fbreak; };
+      'alias'        => { emit(kALIAS);        fnext expr_endfn; fbreak; };
+      'else'         => { emit(kELSE);         fnext expr_endfn; fbreak; };
+      'case'         => { emit(kCASE);         fnext expr_endfn; fbreak; };
+      'ensure'       => { emit(kENSURE);       fnext expr_endfn; fbreak; };
+      'module'       => { emit(kMODULE);       fnext expr_endfn; fbreak; };
+      'elsif'        => { emit(kELSIF);        fnext expr_endfn; fbreak; };
+      'then'         => { emit(kTHEN);         fnext expr_endfn; fbreak; };
+      'for'          => { emit(kFOR);          fnext expr_endfn; fbreak; };
+      'in'           => { emit(kIN);           fnext expr_endfn; fbreak; };
+      'do'           => { emit(kDO);           fnext expr_endfn; fbreak; };
+      'when'         => { emit(kWHEN);         fnext expr_endfn; fbreak; };
+      'begin'        => { emit(kBEGIN);        fnext expr_endfn; fbreak; };
+      'class'        => { emit(kCLASS);        fnext expr_endfn; fbreak; };
+      'and'          => { emit(kAND);          fnext expr_endfn; fbreak; };
+      'or'           => { emit(kOR);           fnext expr_endfn; fbreak; };
+      'return'       => { emit(kRETURN);       fnext expr_endfn; fbreak; };
+      'break'        => { emit(kBREAK);        fnext expr_endfn; fbreak; };
+      'next'         => { emit(kNEXT);         fnext expr_endfn; fbreak; };
+      'end'          => { emit(kEND);          fnext expr_endfn; fbreak; };
+      'self'         => { emit(kSELF);         fnext expr_endfn; fbreak; };
+      'true'         => { emit(kTRUE);         fnext expr_endfn; fbreak; };
+      'false'        => { emit(kFALSE);        fnext expr_endfn; fbreak; };
+      'retry'        => { emit(kRETRY);        fnext expr_endfn; fbreak; };
+      'redo'         => { emit(kREDO);         fnext expr_endfn; fbreak; };
+      'nil'          => { emit(kNIL);          fnext expr_endfn; fbreak; };
+      'BEGIN'        => { emit(klBEGIN);       fnext expr_endfn; fbreak; };
+      'END'          => { emit(klEND);         fnext expr_endfn; fbreak; };
+      '__FILE__'     => { emit(k__FILE__);     fnext expr_endfn; fbreak; };
+      '__LINE__'     => { emit(k__LINE__);     fnext expr_endfn; fbreak; };
+      '__ENCODING__' => { emit(k__ENCODING__); fnext expr_endfn; fbreak; };
+
+      constant        => { emit(tCONSTANT); fnext expr_endfn; fbreak; };
+
+      bareword [?=!]? => { emit(tIDENTIFIER); fnext expr_endfn; fbreak; };
+
+      global_var => { p = ts - 1; fnext expr_end; fcall expr_variable; };
+
+      '[]'  => { emit(tAREF);      fnext expr_endfn; fbreak; };
+      '[]=' => { emit(tASET);      fnext expr_endfn; fbreak; };
+      '`'   => { emit(tBACK_REF2); fnext expr_endfn; fbreak; };
+      '-@'  => { emit(tUMINUS);    fnext expr_endfn; fbreak; };
+      '+@'  => { emit(tUPLUS);     fnext expr_endfn; fbreak; };
+      '~@'  => { emit(tTILDE);     fnext expr_endfn; fbreak; };
+      '!@'  => { emit(tBANG);      fnext expr_endfn; fbreak; };
+      '&'   => { emit(tAMPER2);    fnext expr_endfn; fbreak; };
+      '|'   => { emit(tPIPE);      fnext expr_endfn; fbreak; };
+      '&&'  => { emit(tANDOP);     fnext expr_endfn; fbreak; };
+      '||'  => { emit(tOROP);      fnext expr_endfn; fbreak; };
+      '^'   => { emit(tCARET);     fnext expr_endfn; fbreak; };
+      '+'   => { emit(tPLUS);      fnext expr_endfn; fbreak; };
+      '-'   => { emit(tMINUS);     fnext expr_endfn; fbreak; };
+      '*'   => { emit(tSTAR2);     fnext expr_endfn; fbreak; };
+      '/'   => { emit(tDIVIDE);    fnext expr_endfn; fbreak; };
+      '**'  => { emit(tPOW);       fnext expr_endfn; fbreak; };
+      '~'   => { emit(tTILDE);     fnext expr_endfn; fbreak; };
+      '<<'  => { emit(tLSHFT);     fnext expr_endfn; fbreak; };
+      '>>'  => { emit(tRSHFT);     fnext expr_endfn; fbreak; };
+      '%'   => { emit(tPERCENT);   fnext expr_endfn; fbreak; };
+      '=~'  => { emit(tMATCH);     fnext expr_endfn; fbreak; };
+      '!~'  => { emit(tNMATCH);    fnext expr_endfn; fbreak; };
+      '=='  => { emit(tEQ);        fnext expr_endfn; fbreak; };
+      '!='  => { emit(tNEQ);       fnext expr_endfn; fbreak; };
+      '!'   => { emit(tBANG);      fnext expr_endfn; fbreak; };
+      '===' => { emit(tEQQ);       fnext expr_endfn; fbreak; };
+      '<'   => { emit(tLT);        fnext expr_endfn; fbreak; };
+      '<='  => { emit(tLEQ);       fnext expr_endfn; fbreak; };
+      '>'   => { emit(tGT);        fnext expr_endfn; fbreak; };
+      '>='  => { emit(tGEQ);       fnext expr_endfn; fbreak; };
+      '<=>' => { emit(tCMP);       fnext expr_endfn; fbreak; };
+      '=>'  => { emit(tASSOC);     fnext expr_endfn; fbreak; };
+
+      '::' => { fhold; fhold; fgoto expr_end; };
+
+      ':' => { fhold; fgoto expr_beg; };
+
+      w_any;
+
+      c_any => { fhold; fgoto expr_end; };
+
+      c_eof => do_eof;
+  *|;
+
+  expr_endfn := |*
+      label => {
+        emit_token(state, tLABEL, tok(state, ts, te - 1), ts, te);
+        fnext expr_labelarg; fbreak;
+      };
+
+      w_space_comment;
+
+      c_any => { fhold; fgoto expr_end; };
+
+      c_eof => do_eof;
+  *|;
+
+  expr_dot := |*
+      constant => { emit(tCONSTANT); fnext *arg_or_cmdarg(command_state); fbreak; };
+
+      call_or_var => { emit(tIDENTIFIER); fnext *arg_or_cmdarg(command_state); fbreak; };
+
+      bareword ambiguous_fid_suffix
+      => { emit_token(state, tFID, tok(state, ts, tm), ts, tm);
+           fnext *arg_or_cmdarg(command_state); p = tm - 1; fbreak; };
+
+      '[]'  => { emit(tAREF);      fnext expr_arg; fbreak; };
+      '[]=' => { emit(tASET);      fnext expr_arg; fbreak; };
+      '`'   => { emit(tBACK_REF2); fnext expr_arg; fbreak; };
+      '-@'  => { emit(tUMINUS);    fnext expr_arg; fbreak; };
+      '+@'  => { emit(tUPLUS);     fnext expr_arg; fbreak; };
+      '~@'  => { emit(tTILDE);     fnext expr_arg; fbreak; };
+      '!@'  => { emit(tBANG);      fnext expr_arg; fbreak; };
+      '&'   => { emit(tAMPER2);    fnext expr_arg; fbreak; };
+      '|'   => { emit(tPIPE);      fnext expr_arg; fbreak; };
+      '&&'  => { emit(tANDOP);     fnext expr_arg; fbreak; };
+      '||'  => { emit(tOROP);      fnext expr_arg; fbreak; };
+      '^'   => { emit(tCARET);     fnext expr_arg; fbreak; };
+      '+'   => { emit(tPLUS);      fnext expr_arg; fbreak; };
+      '-'   => { emit(tMINUS);     fnext expr_arg; fbreak; };
+      '*'   => { emit(tSTAR2);     fnext expr_arg; fbreak; };
+      '/'   => { emit(tDIVIDE);    fnext expr_arg; fbreak; };
+      '**'  => { emit(tPOW);       fnext expr_arg; fbreak; };
+      '~'   => { emit(tTILDE);     fnext expr_arg; fbreak; };
+      '<<'  => { emit(tLSHFT);     fnext expr_arg; fbreak; };
+      '>>'  => { emit(tRSHFT);     fnext expr_arg; fbreak; };
+      '%'   => { emit(tPERCENT);   fnext expr_arg; fbreak; };
+      '=~'  => { emit(tMATCH);     fnext expr_arg; fbreak; };
+      '!~'  => { emit(tNMATCH);    fnext expr_arg; fbreak; };
+      '=='  => { emit(tEQ);        fnext expr_arg; fbreak; };
+      '!='  => { emit(tNEQ);       fnext expr_arg; fbreak; };
+      '!'   => { emit(tBANG);      fnext expr_arg; fbreak; };
+      '===' => { emit(tEQQ);       fnext expr_arg; fbreak; };
+      '<'   => { emit(tLT);        fnext expr_arg; fbreak; };
+      '<='  => { emit(tLEQ);       fnext expr_arg; fbreak; };
+      '>'   => { emit(tGT);        fnext expr_arg; fbreak; };
+      '>='  => { emit(tGEQ);       fnext expr_arg; fbreak; };
+      '<=>' => { emit(tCMP);       fnext expr_arg; fbreak; };
+      '=>'  => { emit(tASSOC);     fnext expr_arg; fbreak; };
+
+      w_any;
+
+      c_any
+      => { fhold; fgoto expr_end; };
+
+      c_eof => do_eof;
+  *|;
+
+  expr_arg := |*
+      w_space+ e_lparen => {
+        if (state->version == 18) {
+          emit_token(state, tLPAREN2, rb_str_new2("("), te - 1, te);
+          fnext expr_value; fbreak;
+        } else {
+          emit_token(state, tLPAREN_ARG, rb_str_new2("("), te - 1, te);
+          fnext expr_beg; fbreak;
+        }
+      };
+
+      e_lparen => { emit(tLPAREN2); fnext expr_beg; fbreak; };
+
+      w_space+ e_lbrack => {
+        emit_token(state, tLBRACK, rb_str_new2("["), te - 1, te);
+        fnext expr_beg; fbreak;
+      };
+
+      w_space* e_lbrace => {
+        VALUE val = array_last(state->lambda_stack);
+        if (val != Qnil && NUM2INT(val) == state->paren_nest) {
+          p = ts - 1;
+          fgoto expr_end;
+        } else {
+          emit_token(state, tLCURLY, rb_str_new2("{"), te - 1, te);
+          fnext expr_value; fbreak;
+        }
+      };
+
+      '?' c_space_nl => { p = ts - 1; fgoto expr_end; };
+
+      w_space* '?' => { fhold; fgoto expr_beg; };
+
+      w_space+ %{ tm = p; } ( [%/] ( c_any - c_space_nl - '=' ) | '<<' ) => {
+        if (NUM2INT(rb_ary_entry(state->source_pts, tm)) == '/') {
+          diagnostic(state, warning, ambiguous_literal, Qnil,
+                     range(state, tm, tm + 1), empty_array);
+        }
+
+        p = tm - 1;
+        fgoto expr_beg;
+      };
+
+      w_space+ %{ tm = p; } ( '+' | '-' | '*' | '&' | '**' ) => {
+        VALUE hash = rb_hash_new();
+        VALUE str  = tok(state, tm, te);
+        rb_hash_aset(hash, prefix, str);
+        diagnostic(state, warning, ambiguous_prefix, hash, range(state, tm, te),
+                   empty_array);
+
+        p = tm - 1;
+        fgoto expr_beg;
+      };
+
+      w_space+ '::' => { fhold; fhold; fgoto expr_beg; };
+
+      w_space* ':' => { fhold; fgoto expr_beg; };
+
+      w_space+ label => { p = ts - 1; fgoto expr_beg; };
+
+      w_space+ %{ tm = p; } '?' c_space_nl => { p = tm - 1; fgoto expr_end; };
+
+      w_space* operator_arithmetic
+                  ( '=' | c_space_nl )?    |
+      w_space* keyword_modifier            |
+      w_space* punctuation_end
+      => {
+        p = ts - 1;
+        fgoto expr_end;
+      };
+
+      w_space;
+
+      w_comment => { fgoto expr_end; };
+
+      w_newline => { fhold; fgoto expr_end; };
+
+      c_any => { fhold; fgoto expr_beg; };
+
+      c_eof => do_eof;
+  *|;
+
+  expr_cmdarg := |*
+      w_space+ e_lparen
+      => {
+        emit_token(state, tLPAREN_ARG, rb_str_new2("("), te - 1, te);
+        if (state->version == 18) {
+          fnext expr_value; fbreak;
+        } else {
+          fnext expr_beg; fbreak;
+        }
+      };
+
+      w_space* 'do'
+      => {
+        if (stack_state_active(&state->cond)) {
+          emit_token(state, kDO_COND, rb_str_new2("do"), te - 2, te);
+        } else {
+          emit_token(state, kDO, rb_str_new2("do"), te - 2, te);
+        }
+        fnext expr_value; fbreak;
+      };
+
+      c_any             |
+      w_space* bareword |
+      w_space* label
+      => { p = ts - 1;
+           fgoto expr_arg; };
+
+      c_eof => do_eof;
+  *|;
+
+  expr_endarg := |*
+      e_lbrace => { emit(tLBRACE_ARG); fnext expr_value; };
+
+      'do' => { emit_do(state, 1, ts, te); fnext expr_value; fbreak; };
+
+      w_space_comment;
+
+      c_any
+      => { fhold; fgoto expr_end; };
+
+      c_eof => do_eof;
+  *|;
+
+  expr_mid := |*
+      'if'     => { emit(kIF_MOD);     fnext expr_beg; fbreak; };
+      'unless' => { emit(kUNLESS_MOD); fnext expr_beg; fbreak; };
+      'while'  => { emit(kWHILE_MOD);  fnext expr_beg; fbreak; };
+      'until'  => { emit(kUNTIL_MOD);  fnext expr_beg; fbreak; };
+      'rescue' => { emit(kRESCUE_MOD); fnext expr_beg; fbreak; };
+
+      bareword => { p = ts - 1; fgoto expr_beg; };
+
+      w_space_comment;
+
+      w_newline => { fhold; fgoto expr_end; };
+
+      c_any => { fhold; fgoto expr_beg; };
+
+      c_eof => do_eof;
+  *|;
 
   expr_beg := |*
       [+\-][0-9] => {
@@ -2168,6 +2512,39 @@ void Init_lexer()
       punctuation_end            |
       c_any
       => { p = ts - 1; fgoto expr_end; };
+
+      c_eof => do_eof;
+  *|;
+
+  expr_labelarg := |*
+      w_space_comment;
+
+      w_newline => {
+        if (state->in_kwarg) {
+          fhold; fgoto expr_end;
+        } else {
+          fgoto line_begin;
+        }
+      };
+
+      c_any => { fhold; fgoto expr_beg; };
+
+      c_eof => do_eof;
+  *|;
+
+  expr_value := |*
+      label (any - ':') => { p = ts - 1; fgoto expr_end; };
+
+      ['"] => { /* ' */
+        VALUE type = tok(state, ts, te);
+        fgoto *push_literal(state, type, type, ts, 0, 0, 0, 0);
+      };
+
+      w_space_comment;
+
+      w_newline => { fgoto line_begin; };
+
+      c_any => { fhold; fgoto expr_beg; };
 
       c_eof => do_eof;
   *|;
@@ -2491,383 +2868,6 @@ void Init_lexer()
       any => {
         emit_token(state, tNL, Qnil, state->newline_s, state->newline_s + 1);
         fhold; fnext line_begin; fbreak;
-      };
-  *|;
-
-  expr_fname := |*
-      'if'           => { emit(kIF);           fnext expr_endfn; fbreak; };
-      'unless'       => { emit(kUNLESS);       fnext expr_endfn; fbreak; };
-      'while'        => { emit(kWHILE);        fnext expr_endfn; fbreak; };
-      'until'        => { emit(kUNTIL);        fnext expr_endfn; fbreak; };
-      'rescue'       => { emit(kRESCUE);       fnext expr_endfn; fbreak; };
-      'yield'        => { emit(kYIELD);        fnext expr_endfn; fbreak; };
-      'super'        => { emit(kSUPER);        fnext expr_endfn; fbreak; };
-      'not'          => { emit(kNOT);          fnext expr_endfn; fbreak; };
-      'defined?'     => { emit(kDEFINED);      fnext expr_endfn; fbreak; };
-      'def'          => { emit(kDEF);          fnext expr_endfn; fbreak; };
-      'undef'        => { emit(kUNDEF);        fnext expr_endfn; fbreak; };
-      'alias'        => { emit(kALIAS);        fnext expr_endfn; fbreak; };
-      'else'         => { emit(kELSE);         fnext expr_endfn; fbreak; };
-      'case'         => { emit(kCASE);         fnext expr_endfn; fbreak; };
-      'ensure'       => { emit(kENSURE);       fnext expr_endfn; fbreak; };
-      'module'       => { emit(kMODULE);       fnext expr_endfn; fbreak; };
-      'elsif'        => { emit(kELSIF);        fnext expr_endfn; fbreak; };
-      'then'         => { emit(kTHEN);         fnext expr_endfn; fbreak; };
-      'for'          => { emit(kFOR);          fnext expr_endfn; fbreak; };
-      'in'           => { emit(kIN);           fnext expr_endfn; fbreak; };
-      'do'           => { emit(kDO);           fnext expr_endfn; fbreak; };
-      'when'         => { emit(kWHEN);         fnext expr_endfn; fbreak; };
-      'begin'        => { emit(kBEGIN);        fnext expr_endfn; fbreak; };
-      'class'        => { emit(kCLASS);        fnext expr_endfn; fbreak; };
-      'and'          => { emit(kAND);          fnext expr_endfn; fbreak; };
-      'or'           => { emit(kOR);           fnext expr_endfn; fbreak; };
-      'return'       => { emit(kRETURN);       fnext expr_endfn; fbreak; };
-      'break'        => { emit(kBREAK);        fnext expr_endfn; fbreak; };
-      'next'         => { emit(kNEXT);         fnext expr_endfn; fbreak; };
-      'end'          => { emit(kEND);          fnext expr_endfn; fbreak; };
-      'self'         => { emit(kSELF);         fnext expr_endfn; fbreak; };
-      'true'         => { emit(kTRUE);         fnext expr_endfn; fbreak; };
-      'false'        => { emit(kFALSE);        fnext expr_endfn; fbreak; };
-      'retry'        => { emit(kRETRY);        fnext expr_endfn; fbreak; };
-      'redo'         => { emit(kREDO);         fnext expr_endfn; fbreak; };
-      'nil'          => { emit(kNIL);          fnext expr_endfn; fbreak; };
-      'BEGIN'        => { emit(klBEGIN);       fnext expr_endfn; fbreak; };
-      'END'          => { emit(klEND);         fnext expr_endfn; fbreak; };
-      '__FILE__'     => { emit(k__FILE__);     fnext expr_endfn; fbreak; };
-      '__LINE__'     => { emit(k__LINE__);     fnext expr_endfn; fbreak; };
-      '__ENCODING__' => { emit(k__ENCODING__); fnext expr_endfn; fbreak; };
-
-      constant        => { emit(tCONSTANT); fnext expr_endfn; fbreak; };
-
-      bareword [?=!]? => { emit(tIDENTIFIER); fnext expr_endfn; fbreak; };
-
-      global_var => { p = ts - 1; fnext expr_end; fcall expr_variable; };
-
-      '[]'  => { emit(tAREF);      fnext expr_endfn; fbreak; };
-      '[]=' => { emit(tASET);      fnext expr_endfn; fbreak; };
-      '`'   => { emit(tBACK_REF2); fnext expr_endfn; fbreak; };
-      '-@'  => { emit(tUMINUS);    fnext expr_endfn; fbreak; };
-      '+@'  => { emit(tUPLUS);     fnext expr_endfn; fbreak; };
-      '~@'  => { emit(tTILDE);     fnext expr_endfn; fbreak; };
-      '!@'  => { emit(tBANG);      fnext expr_endfn; fbreak; };
-      '&'   => { emit(tAMPER2);    fnext expr_endfn; fbreak; };
-      '|'   => { emit(tPIPE);      fnext expr_endfn; fbreak; };
-      '&&'  => { emit(tANDOP);     fnext expr_endfn; fbreak; };
-      '||'  => { emit(tOROP);      fnext expr_endfn; fbreak; };
-      '^'   => { emit(tCARET);     fnext expr_endfn; fbreak; };
-      '+'   => { emit(tPLUS);      fnext expr_endfn; fbreak; };
-      '-'   => { emit(tMINUS);     fnext expr_endfn; fbreak; };
-      '*'   => { emit(tSTAR2);     fnext expr_endfn; fbreak; };
-      '/'   => { emit(tDIVIDE);    fnext expr_endfn; fbreak; };
-      '**'  => { emit(tPOW);       fnext expr_endfn; fbreak; };
-      '~'   => { emit(tTILDE);     fnext expr_endfn; fbreak; };
-      '<<'  => { emit(tLSHFT);     fnext expr_endfn; fbreak; };
-      '>>'  => { emit(tRSHFT);     fnext expr_endfn; fbreak; };
-      '%'   => { emit(tPERCENT);   fnext expr_endfn; fbreak; };
-      '=~'  => { emit(tMATCH);     fnext expr_endfn; fbreak; };
-      '!~'  => { emit(tNMATCH);    fnext expr_endfn; fbreak; };
-      '=='  => { emit(tEQ);        fnext expr_endfn; fbreak; };
-      '!='  => { emit(tNEQ);       fnext expr_endfn; fbreak; };
-      '!'   => { emit(tBANG);      fnext expr_endfn; fbreak; };
-      '===' => { emit(tEQQ);       fnext expr_endfn; fbreak; };
-      '<'   => { emit(tLT);        fnext expr_endfn; fbreak; };
-      '<='  => { emit(tLEQ);       fnext expr_endfn; fbreak; };
-      '>'   => { emit(tGT);        fnext expr_endfn; fbreak; };
-      '>='  => { emit(tGEQ);       fnext expr_endfn; fbreak; };
-      '<=>' => { emit(tCMP);       fnext expr_endfn; fbreak; };
-      '=>'  => { emit(tASSOC);     fnext expr_endfn; fbreak; };
-
-      '::' => { fhold; fhold; fgoto expr_end; };
-
-      ':' => { fhold; fgoto expr_beg; };
-
-      w_any;
-
-      c_any => { fhold; fgoto expr_end; };
-
-      c_eof => do_eof;
-  *|;
-
-  expr_endfn := |*
-      label => {
-        emit_token(state, tLABEL, tok(state, ts, te - 1), ts, te);
-        fnext expr_labelarg; fbreak;
-      };
-
-      w_space_comment;
-
-      c_any => { fhold; fgoto expr_end; };
-
-      c_eof => do_eof;
-  *|;
-
-  expr_dot := |*
-      constant => { emit(tCONSTANT); fnext *arg_or_cmdarg(command_state); fbreak; };
-
-      call_or_var => { emit(tIDENTIFIER); fnext *arg_or_cmdarg(command_state); fbreak; };
-
-      bareword ambiguous_fid_suffix
-      => { emit_token(state, tFID, tok(state, ts, tm), ts, tm);
-           fnext *arg_or_cmdarg(command_state); p = tm - 1; fbreak; };
-
-      '[]'  => { emit(tAREF);      fnext expr_arg; fbreak; };
-      '[]=' => { emit(tASET);      fnext expr_arg; fbreak; };
-      '`'   => { emit(tBACK_REF2); fnext expr_arg; fbreak; };
-      '-@'  => { emit(tUMINUS);    fnext expr_arg; fbreak; };
-      '+@'  => { emit(tUPLUS);     fnext expr_arg; fbreak; };
-      '~@'  => { emit(tTILDE);     fnext expr_arg; fbreak; };
-      '!@'  => { emit(tBANG);      fnext expr_arg; fbreak; };
-      '&'   => { emit(tAMPER2);    fnext expr_arg; fbreak; };
-      '|'   => { emit(tPIPE);      fnext expr_arg; fbreak; };
-      '&&'  => { emit(tANDOP);     fnext expr_arg; fbreak; };
-      '||'  => { emit(tOROP);      fnext expr_arg; fbreak; };
-      '^'   => { emit(tCARET);     fnext expr_arg; fbreak; };
-      '+'   => { emit(tPLUS);      fnext expr_arg; fbreak; };
-      '-'   => { emit(tMINUS);     fnext expr_arg; fbreak; };
-      '*'   => { emit(tSTAR2);     fnext expr_arg; fbreak; };
-      '/'   => { emit(tDIVIDE);    fnext expr_arg; fbreak; };
-      '**'  => { emit(tPOW);       fnext expr_arg; fbreak; };
-      '~'   => { emit(tTILDE);     fnext expr_arg; fbreak; };
-      '<<'  => { emit(tLSHFT);     fnext expr_arg; fbreak; };
-      '>>'  => { emit(tRSHFT);     fnext expr_arg; fbreak; };
-      '%'   => { emit(tPERCENT);   fnext expr_arg; fbreak; };
-      '=~'  => { emit(tMATCH);     fnext expr_arg; fbreak; };
-      '!~'  => { emit(tNMATCH);    fnext expr_arg; fbreak; };
-      '=='  => { emit(tEQ);        fnext expr_arg; fbreak; };
-      '!='  => { emit(tNEQ);       fnext expr_arg; fbreak; };
-      '!'   => { emit(tBANG);      fnext expr_arg; fbreak; };
-      '===' => { emit(tEQQ);       fnext expr_arg; fbreak; };
-      '<'   => { emit(tLT);        fnext expr_arg; fbreak; };
-      '<='  => { emit(tLEQ);       fnext expr_arg; fbreak; };
-      '>'   => { emit(tGT);        fnext expr_arg; fbreak; };
-      '>='  => { emit(tGEQ);       fnext expr_arg; fbreak; };
-      '<=>' => { emit(tCMP);       fnext expr_arg; fbreak; };
-      '=>'  => { emit(tASSOC);     fnext expr_arg; fbreak; };
-
-      w_any;
-
-      c_any
-      => { fhold; fgoto expr_end; };
-
-      c_eof => do_eof;
-  *|;
-
-  expr_arg := |*
-      w_space+ e_lparen => {
-        if (state->version == 18) {
-          emit_token(state, tLPAREN2, rb_str_new2("("), te - 1, te);
-          fnext expr_value; fbreak;
-        } else {
-          emit_token(state, tLPAREN_ARG, rb_str_new2("("), te - 1, te);
-          fnext expr_beg; fbreak;
-        }
-      };
-
-      e_lparen => { emit(tLPAREN2); fnext expr_beg; fbreak; };
-
-      w_space+ e_lbrack => {
-        emit_token(state, tLBRACK, rb_str_new2("["), te - 1, te);
-        fnext expr_beg; fbreak;
-      };
-
-      w_space* e_lbrace => {
-        VALUE val = array_last(state->lambda_stack);
-        if (val != Qnil && NUM2INT(val) == state->paren_nest) {
-          p = ts - 1;
-          fgoto expr_end;
-        } else {
-          emit_token(state, tLCURLY, rb_str_new2("{"), te - 1, te);
-          fnext expr_value; fbreak;
-        }
-      };
-
-      '?' c_space_nl => { p = ts - 1; fgoto expr_end; };
-
-      w_space* '?' => { fhold; fgoto expr_beg; };
-
-      w_space+ %{ tm = p; } ( [%/] ( c_any - c_space_nl - '=' ) | '<<' ) => {
-        if (NUM2INT(rb_ary_entry(state->source_pts, tm)) == '/') {
-          diagnostic(state, warning, ambiguous_literal, Qnil,
-                     range(state, tm, tm + 1), empty_array);
-        }
-
-        p = tm - 1;
-        fgoto expr_beg;
-      };
-
-      w_space+ %{ tm = p; } ( '+' | '-' | '*' | '&' | '**' ) => {
-        VALUE hash = rb_hash_new();
-        VALUE str  = tok(state, tm, te);
-        rb_hash_aset(hash, prefix, str);
-        diagnostic(state, warning, ambiguous_prefix, hash, range(state, tm, te),
-                   empty_array);
-
-        p = tm - 1;
-        fgoto expr_beg;
-      };
-
-      w_space+ '::' => { fhold; fhold; fgoto expr_beg; };
-
-      w_space* ':' => { fhold; fgoto expr_beg; };
-
-      w_space+ label => { p = ts - 1; fgoto expr_beg; };
-
-      w_space+ %{ tm = p; } '?' c_space_nl => { p = tm - 1; fgoto expr_end; };
-
-      w_space* operator_arithmetic
-                  ( '=' | c_space_nl )?    |
-      w_space* keyword_modifier            |
-      w_space* punctuation_end
-      => {
-        p = ts - 1;
-        fgoto expr_end;
-      };
-
-      w_space;
-
-      w_comment => { fgoto expr_end; };
-
-      w_newline => { fhold; fgoto expr_end; };
-
-      c_any => { fhold; fgoto expr_beg; };
-
-      c_eof => do_eof;
-  *|;
-
-  expr_cmdarg := |*
-      w_space+ e_lparen
-      => {
-        emit_token(state, tLPAREN_ARG, rb_str_new2("("), te - 1, te);
-        if (state->version == 18) {
-          fnext expr_value; fbreak;
-        } else {
-          fnext expr_beg; fbreak;
-        }
-      };
-
-      w_space* 'do'
-      => {
-        if (stack_state_active(&state->cond)) {
-          emit_token(state, kDO_COND, rb_str_new2("do"), te - 2, te);
-        } else {
-          emit_token(state, kDO, rb_str_new2("do"), te - 2, te);
-        }
-        fnext expr_value; fbreak;
-      };
-
-      c_any             |
-      w_space* bareword |
-      w_space* label
-      => { p = ts - 1;
-           fgoto expr_arg; };
-
-      c_eof => do_eof;
-  *|;
-
-  expr_endarg := |*
-      e_lbrace => { emit(tLBRACE_ARG); fnext expr_value; };
-
-      'do' => { emit_do(state, 1, ts, te); fnext expr_value; fbreak; };
-
-      w_space_comment;
-
-      c_any
-      => { fhold; fgoto expr_end; };
-
-      c_eof => do_eof;
-  *|;
-
-  expr_mid := |*
-      'if'     => { emit(kIF_MOD);     fnext expr_beg; fbreak; };
-      'unless' => { emit(kUNLESS_MOD); fnext expr_beg; fbreak; };
-      'while'  => { emit(kWHILE_MOD);  fnext expr_beg; fbreak; };
-      'until'  => { emit(kUNTIL_MOD);  fnext expr_beg; fbreak; };
-      'rescue' => { emit(kRESCUE_MOD); fnext expr_beg; fbreak; };
-
-      bareword => { p = ts - 1; fgoto expr_beg; };
-
-      w_space_comment;
-
-      w_newline => { fhold; fgoto expr_end; };
-
-      c_any => { fhold; fgoto expr_beg; };
-
-      c_eof => do_eof;
-  *|;
-
-  expr_labelarg := |*
-      w_space_comment;
-
-      w_newline => {
-        if (state->in_kwarg) {
-          fhold; fgoto expr_end;
-        } else {
-          fgoto line_begin;
-        }
-      };
-
-      c_any => { fhold; fgoto expr_beg; };
-
-      c_eof => do_eof;
-  *|;
-
-  expr_value := |*
-      label (any - ':') => { p = ts - 1; fgoto expr_end; };
-
-      ['"] => { /* ' */
-        VALUE type = tok(state, ts, te);
-        fgoto *push_literal(state, type, type, ts, 0, 0, 0, 0);
-      };
-
-      w_space_comment;
-
-      w_newline => { fgoto line_begin; };
-
-      c_any => { fhold; fgoto expr_beg; };
-
-      c_eof => do_eof;
-  *|;
-
-  expr_variable := |*
-      global_var => {
-        VALUE str = tok(state, ts, te);
-
-        if (is_nthref(str)) {
-          VALUE integer = rb_funcall(tok(state, ts + 1, te), rb_intern("to_i"), 0);
-          emit_token(state, tNTH_REF, integer, ts, te);
-        } else if (is_backref(str)) {
-          emit(tBACK_REF);
-        } else {
-          emit(tGVAR);
-        }
-
-        fret; fbreak;
-      };
-
-      class_var_v => {
-        VALUE str = tok(state, ts, te);
-
-        if (bad_cvar_name(str)) {
-          VALUE hash = rb_hash_new();
-          rb_hash_aset(hash, ID2SYM(rb_intern("name")), str);
-          diagnostic(state, severity_error, cvar_name, hash, range(state, ts, te), empty_array);
-        }
-
-        emit(tCVAR);
-        fret; fbreak;
-      };
-
-      instance_var_v => {
-        VALUE str = tok(state, ts, te);
-
-        if (bad_ivar_name(str)) {
-          VALUE hash = rb_hash_new();
-          rb_hash_aset(hash, ID2SYM(rb_intern("name")), str);
-          diagnostic(state, severity_error, ivar_name, hash, range(state, ts, te), empty_array);
-        }
-
-        emit(tIVAR);
-        fret; fbreak;
       };
   *|;
 
