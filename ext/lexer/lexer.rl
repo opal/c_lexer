@@ -747,6 +747,11 @@ static int literal_words_p(literal *lit)
          lit->start_tok == tSYMBOLS_BEG || lit->start_tok == tQSYMBOLS_BEG;
 }
 
+static int literal_backslash_delimited_p(literal *lit)
+{
+  return *RSTRING_PTR(lit->end_delim) == '\\';
+}
+
 static void literal_infer_indent_level(literal *lit, VALUE line)
 {
   if (!lit->dedent_body)
@@ -1019,6 +1024,34 @@ static void emit_float_followed_by_rescue(lexer_state *state, VALUE val, long st
   emit_token(state, tFLOAT, rb_funcall(Qnil, rb_intern("Float"), 1, val), start, end);
 }
 
+static int next_state_for_literal(literal *lit) {
+  if (literal_words_p(lit) && literal_backslash_delimited_p(lit)) {
+    if (lit->interpolate) {
+      return lex_en_interp_backslash_delimited_words;
+    } else {
+      return lex_en_plain_backslash_delimited_words;
+    }
+  } else if (literal_words_p(lit) && !literal_backslash_delimited_p(lit)) {
+    if (lit->interpolate) {
+      return lex_en_interp_words;
+    } else {
+      return lex_en_plain_words;
+    }
+  } else if (!literal_words_p(lit) && literal_backslash_delimited_p(lit)) {
+    if (lit->interpolate) {
+      return lex_en_interp_backslash_delimited;
+    } else {
+      return lex_en_plain_backslash_delimited;
+    }
+  } else {
+    if (lit->interpolate) {
+      return lex_en_interp_string;
+    } else {
+      return lex_en_plain_string;
+    }
+  }
+}
+
 static int push_literal(lexer_state *state, VALUE str_type, VALUE delimiter,
                         long str_s, long heredoc_e, int indent, int dedent_body,
                         int label_allowed)
@@ -1028,25 +1061,7 @@ static int push_literal(lexer_state *state, VALUE str_type, VALUE delimiter,
                dedent_body, label_allowed);
   lit_stack_push(&state->literal_stack, lit);
 
-  if (literal_words_p(&lit)) {
-    if (lit.interpolate) {
-      return lex_en_interp_words;
-    } else {
-      return lex_en_plain_words;
-    }
-  } else if (*RSTRING_PTR(lit.end_delim) == '\\') {
-    if (lit.interpolate) {
-      return lex_en_interp_backslash_delimited;
-    } else {
-      return lex_en_plain_backslash_delimited;
-    }
-  } else {
-    if (lit.interpolate) {
-      return lex_en_interp_string;
-    } else {
-      return lex_en_plain_string;
-    }
-  }
+  return next_state_for_literal(&lit);
 }
 
 static int pop_literal(lexer_state *state)
@@ -1850,6 +1865,20 @@ void Init_lexer()
   *|;
 
   plain_backslash_delimited := |*
+      c_eol       => extend_string_eol;
+      c_any       => extend_string;
+  *|;
+
+  interp_backslash_delimited_words := |*
+      interp_code => extend_interp_code;
+      interp_var  => extend_interp_var;
+      c_space+    => extend_string_space;
+      c_eol       => extend_string_eol;
+      c_any       => extend_string;
+  *|;
+
+  plain_backslash_delimited_words := |*
+      c_space+    => extend_string_space;
       c_eol       => extend_string_eol;
       c_any       => extend_string;
   *|;
