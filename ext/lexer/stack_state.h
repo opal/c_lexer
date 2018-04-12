@@ -18,10 +18,31 @@ static inline int stack_state_pop(stack_state *ss)
 
 static inline int stack_state_lexpop(stack_state *ss)
 {
-  return stack_state_push(ss, stack_state_pop(ss) || stack_state_pop(ss));
+  *ss = ( (*ss >> 1) | (*ss & 1) );
+  return *ss & 1;
 }
 
 static inline int stack_state_active(stack_state *ss)
 {
   return *ss & 1;
+}
+
+static inline void stack_state_clear(stack_state *ss)
+{
+  *ss = 0;
+}
+
+static inline VALUE stack_state_empty_p(stack_state *ss)
+{
+  return *ss == 0 ? Qtrue : Qfalse;
+}
+
+static inline int stack_state_value(stack_state *ss)
+{
+  return *ss;
+}
+
+static inline void stack_set_value(stack_state *ss, int value)
+{
+  *ss = value;
 }

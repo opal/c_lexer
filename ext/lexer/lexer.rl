@@ -288,6 +288,36 @@ static VALUE lexer_lexpop_cmdarg_state(VALUE self)
   return Qnil;
 }
 
+static VALUE lexer_clear_cmdarg_state(VALUE self)
+{
+  lexer_state *state;
+  Data_Get_Struct(self, lexer_state, state);
+  stack_state_clear(&state->cmdarg);
+  return Qnil;
+}
+
+static VALUE lexer_cmdarg_state_empty_p(VALUE self)
+{
+  lexer_state *state;
+  Data_Get_Struct(self, lexer_state, state);
+  return stack_state_empty_p(&state->cmdarg);
+}
+
+static VALUE lexer_cmdarg_state_value(VALUE self)
+{
+  lexer_state *state;
+  Data_Get_Struct(self, lexer_state, state);
+  return INT2NUM(stack_state_value(&state->cmdarg));
+}
+
+static VALUE lexer_set_cmdarg_state(VALUE self, VALUE value)
+{
+  lexer_state *state;
+  Data_Get_Struct(self, lexer_state, state);
+  stack_set_value(&state->cmdarg, NUM2INT(value));
+  return Qtrue;
+}
+
 static VALUE lexer_push_cond_state(VALUE self, VALUE bit)
 {
   lexer_state *state;
@@ -317,6 +347,36 @@ static VALUE lexer_lexpop_cond_state(VALUE self)
   Data_Get_Struct(self, lexer_state, state);
   stack_state_lexpop(&state->cond);
   return Qnil;
+}
+
+static VALUE lexer_clear_cond_state(VALUE self)
+{
+  lexer_state *state;
+  Data_Get_Struct(self, lexer_state, state);
+  stack_state_clear(&state->cond);
+  return Qnil;
+}
+
+static VALUE lexer_cond_state_empty_p(VALUE self)
+{
+  lexer_state *state;
+  Data_Get_Struct(self, lexer_state, state);
+  return stack_state_empty_p(&state->cond);
+}
+
+static VALUE lexer_cond_state_value(VALUE self)
+{
+  lexer_state *state;
+  Data_Get_Struct(self, lexer_state, state);
+  return INT2NUM(stack_state_value(&state->cond));
+}
+
+static VALUE lexer_set_cond_state(VALUE self, VALUE value)
+{
+  lexer_state *state;
+  Data_Get_Struct(self, lexer_state, state);
+  stack_set_value(&state->cond, NUM2INT(value));
+  return Qtrue;
 }
 
 static VALUE lexer_get_state(VALUE self)
@@ -1331,10 +1391,18 @@ void Init_lexer()
   rb_define_method(c_Lexer, "push_cmdarg_state",   lexer_push_cmdarg_state, 1);
   rb_define_method(c_Lexer, "pop_cmdarg_state",    lexer_pop_cmdarg_state, 0);
   rb_define_method(c_Lexer, "lexpop_cmdarg_state", lexer_lexpop_cmdarg_state, 0);
+  rb_define_method(c_Lexer, "clear_cmdarg_state",  lexer_clear_cmdarg_state, 0);
+  rb_define_method(c_Lexer, "cmdarg_state_empty?", lexer_cmdarg_state_empty_p, 0);
+  rb_define_method(c_Lexer, "cmdarg_state_value",  lexer_cmdarg_state_value, 0);
+  rb_define_method(c_Lexer, "set_cmdarg_state",    lexer_set_cmdarg_state, 1);
 
   rb_define_method(c_Lexer, "push_cond_state",   lexer_push_cond_state, 1);
   rb_define_method(c_Lexer, "pop_cond_state",    lexer_pop_cond_state, 0);
   rb_define_method(c_Lexer, "lexpop_cond_state", lexer_lexpop_cond_state, 0);
+  rb_define_method(c_Lexer, "clear_cond_state",  lexer_clear_cond_state, 0);
+  rb_define_method(c_Lexer, "cond_state_empty?", lexer_cond_state_empty_p, 0);
+  rb_define_method(c_Lexer, "cond_state_value",  lexer_cond_state_value, 0);
+  rb_define_method(c_Lexer, "set_cond_state",    lexer_set_cond_state, 1);
 
   rb_define_method(c_Lexer, "state",          lexer_get_state,       0);
   rb_define_method(c_Lexer, "state=",         lexer_set_state,       1);
@@ -1802,6 +1870,13 @@ void Init_lexer()
       if (literal_end_interp_brace_and_close(current_literal)) {
         if (state->version == 18 || state->version == 19) {
           emit_token(state, tRCURLY, rb_str_new2("}"), p - 1, p);
+          if (state->version < 24) {
+            stack_state_lexpop(&state->cond);
+            stack_state_lexpop(&state->cmdarg);
+          } else {
+            stack_state_pop(&state->cond);
+            stack_state_pop(&state->cmdarg);
+          }
         } else {
           emit_token(state, tSTRING_DEND, rb_str_new2("}"), p - 1, p);
         }
