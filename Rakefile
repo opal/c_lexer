@@ -41,6 +41,8 @@ namespace :c_lexer do
   end
 end
 
-task test: ['ruby_parser:generate', 'c_lexer:generate', :compile]
+task generate: ['ruby_parser:generate', 'c_lexer:generate']
+
+task test: [:generate, :compile]
 
 task :default => [:test]
