@@ -1506,12 +1506,12 @@ void Init_lexer()
                      range(state, state->escape_s + 2, state->escape_s + 3), empty_array);
       }
 
-      regexp = rb_reg_regcomp(rb_str_new2("[ \t]{2}"));
-      long space_p = rb_funcall(codepoints, rb_intern("index"), 1, regexp);
+      regexp = rb_reg_regcomp(rb_str_new2("[ \\t]{2}"));
+      VALUE space_p = rb_funcall(codepoints, rb_intern("index"), 1, regexp);
 
-      if (space_p) {
+      if (RTEST(space_p)) {
         diagnostic(state, severity_error, invalid_unicode_escape, Qnil,
-                     range(state, codepoint_s + space_p + 1, codepoint_s + space_p + 1), empty_array);
+                     range(state, codepoint_s + NUM2INT(space_p) + 1, codepoint_s + NUM2INT(space_p) + 1), empty_array);
       }
 
       if (str_end_with_p(codepoints, " ") || str_end_with_p(codepoints, "\t")) {
