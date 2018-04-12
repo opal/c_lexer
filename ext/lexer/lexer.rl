@@ -1931,8 +1931,8 @@ void Init_lexer()
     ;
 
   ambiguous_fid_suffix =
-    [?!]  %{ tm = p; }      |
-    '!='  %{ tm = p - 2; }
+    [?!]     %{ tm = p; }      |
+    [?!]'='  %{ tm = p - 2; }
   ;
 
   ambiguous_ident_suffix =
