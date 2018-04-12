@@ -1098,7 +1098,7 @@ static VALUE unescape_char(char c)
   case 's': return rb_str_new(" ", 1);
   case 't': return rb_str_new("\t", 1);
   case 'v': return rb_str_new("\v", 1);
-  default:  return rb_str_new(&c, 1);
+  default:  return Qnil;
   }
 }
 
@@ -1550,6 +1550,11 @@ void Init_lexer()
   action unescape_char {
     char c = NUM2INT(rb_ary_entry(state->source_pts, p - 1));
     state->escape = unescape_char(c);
+
+    if (state->escape == Qnil) {
+      VALUE codepoint = rb_funcall(state->source_buffer, rb_intern("slice"), 1, INT2NUM(p - 1));
+      state->escape = rb_funcall(codepoint, rb_intern("force_encoding"), 1, state->encoding);
+    }
   }
 
   action invalid_complex_escape {
