@@ -2110,6 +2110,21 @@ void Init_lexer()
 
       ':' => { fhold; fgoto expr_beg; };
 
+      '%s' c_any
+      => {
+        if (state->version == 23) {
+          VALUE type = rb_str_substr(state->source, ts, te - ts - 1);
+          VALUE delimiter = rb_str_substr(state->source, te - 1, 1);
+          if (delimiter == Qnil)
+            delimiter = blank_string;
+
+          fgoto *push_literal(state, type, delimiter, ts, 0, 0, 0, 0);
+        } else {
+          p = ts - 1;
+          fgoto expr_end;
+        }
+      };
+
       w_any;
 
       c_any => { fhold; fgoto expr_end; };
