@@ -2571,7 +2571,7 @@ void Init_lexer()
           value = tok(state, ts + 1, te);
 
         if (state->version == 18)
-          emit_token(state, tINTEGER, rb_funcall(rb_str_substr(value, 0, 1), rb_intern("ord"), 0), ts, te);
+          emit_token(state, tINTEGER, rb_funcall(value, rb_intern("getbyte"), 1, INT2NUM(0)), ts, te);
         else
           emit_token(state, tCHARACTER, value, ts, te);
 
