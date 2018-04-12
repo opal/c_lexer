@@ -1,6 +1,6 @@
 require 'parser'
 require 'parser/lexer'
 
-module CParser
+module CLexer
   Lexer = ::Parser::Lexer
 end

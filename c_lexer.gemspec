@@ -1,16 +1,16 @@
 lib = File.expand_path('../lib', __FILE__)
 $LOAD_PATH.unshift(lib) unless $LOAD_PATH.include?(lib)
-require 'c_parser/version'
+require 'c_lexer/version'
 
 Gem::Specification.new do |spec|
-  spec.name          = 'c_parser'
-  spec.version       = CParser::VERSION
+  spec.name          = 'c_lexer'
+  spec.version       = CLexer::VERSION
   spec.authors       = ['Ilya Bylich']
   spec.email         = ['ibylich@gmail.com']
 
   spec.description   = %q{A Ruby parser written in C}
   spec.summary       = spec.description
-  spec.homepage      = 'https://github.com/iliabylich/c_parser'
+  spec.homepage      = 'https://github.com/iliabylich/c_lexer'
 
   spec.files         = `git ls-files`.split.reject do |f|
     f.match(%r{^(test|spec|features)/})

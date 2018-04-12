@@ -1,11 +1,9 @@
 PATH
   remote: .
   specs:
-    c_parser (0.1.0)
+    c_lexer (0.1.0)
       ast (~> 2.4.0)
       parser (>= 2.5.0)
-    parser (2.5.0.5)
-      ast (~> 2.4.0)
 
 GEM
   remote: https://rubygems.org/
@@ -17,6 +15,8 @@ GEM
     json (2.1.0)
     method_source (0.9.0)
     minitest (5.11.3)
+    parser (2.5.1.0)
+      ast (~> 2.4.0)
     pry (0.11.3)
       coderay (~> 1.1.0)
       method_source (~> 0.9.0)
@@ -35,7 +35,7 @@ PLATFORMS
 
 DEPENDENCIES
   bundler (~> 1.16)
-  c_parser!
+  c_lexer!
   cliver (~> 0.3.2)
   minitest (~> 5.10)
   pry
