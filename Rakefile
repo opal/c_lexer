@@ -2,14 +2,11 @@ require 'bundler/gem_tasks'
 require 'rake/testtask'
 require 'rake/extensiontask'
 
-# Rake::TestTask.new do |t|
-#   t.ruby_opts  = ["-rc_lexer"]
-#   t.libs       = %w(test/ lib/ parser/test/ parser/lib/)
-#   t.test_files = %w(parser/test/test_lexer.rb parser/test/test_parser.rb)
-#   t.warning    = false
-# end
-task :test do
-  sh 'ruby -Ilib -Iparser/lib -Iparser/test -rparser -rc_lexer parser/test/test_lexer.rb'
+Rake::TestTask.new do |t|
+  t.ruby_opts  = ["-rc_lexer"]
+  t.libs       = %w(lib/ parser/test/ parser/lib/)
+  t.test_files = %w(parser/test/test_lexer.rb parser/test/test_parser.rb)
+  t.warning    = false
 end
 
 Rake::ExtensionTask.new('lexer')

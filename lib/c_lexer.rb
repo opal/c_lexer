@@ -4,6 +4,8 @@ require 'parser'
 dedenter = Parser::Lexer::Dedenter
 Parser.send(:remove_const, :Lexer)
 
+puts "Using C lexer"
+
 require_relative 'lexer'
 
 class Parser::Lexer
@@ -71,5 +73,4 @@ end
 Parser::Lexer.const_set(:Dedenter, dedenter)
 
 module CLexer
-  # Your code goes here...
 end
