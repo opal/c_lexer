@@ -9,7 +9,7 @@ require 'rake/extensiontask'
 #   t.warning    = false
 # end
 task :test do
-  sh 'ruby -Ilib -Itest -Iparser/lib -Iparser/test -rparser -rc_lexer parser/test/test_lexer.rb'
+  sh 'ruby -Ilib -Iparser/lib -Iparser/test -rparser -rc_lexer parser/test/test_lexer.rb'
 end
 
 Rake::ExtensionTask.new('lexer')
