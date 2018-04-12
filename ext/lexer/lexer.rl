@@ -175,6 +175,7 @@ static VALUE lexer_advance(VALUE self)
   int *stack;
   VALUE ident_tok;
   long ident_ts, ident_te;
+  long numeric_s;
   Data_Get_Struct(self, lexer_state, state);
 
   if (RARRAY_LEN(state->token_queue) > 0)
@@ -1456,23 +1457,23 @@ void Init_lexer()
   flo_pow  = [eE] [+\-]? ( digit+ '_' )* digit+;
 
   int_suffix =
-    ''       % { num_xfrm = emit_int; }
-  | 'r'      % { num_xfrm = emit_rational; }
-  | 'i'      % { num_xfrm = emit_complex; }
-  | 'ri'     % { num_xfrm = emit_complex_rational; }
-  | 'if'     % { num_xfrm = emit_int_followed_by_if; p -= 2; }
-  | 'rescue' % { num_xfrm = emit_int_followed_by_rescue; p -= 6; } ;
+    ''       % { num_xfrm = emit_int;                    numeric_s = ts;         }
+  | 'r'      % { num_xfrm = emit_rational;               numeric_s = ts;         }
+  | 'i'      % { num_xfrm = emit_complex;                numeric_s = ts;         }
+  | 'ri'     % { num_xfrm = emit_complex_rational;       numeric_s = ts;         }
+  | 'if'     % { num_xfrm = emit_int_followed_by_if;     numeric_s = ts; p -= 2; }
+  | 'rescue' % { num_xfrm = emit_int_followed_by_rescue; numeric_s = ts; p -= 6; } ;
 
   flo_pow_suffix =
-    ''   % { num_xfrm = emit_float; }
-  | 'i'  % { num_xfrm = emit_complex_float; }
-  | 'if' % { num_xfrm = emit_float_followed_by_if; p -= 2; };
+    ''   % { num_xfrm = emit_float;                numeric_s = ts;         }
+  | 'i'  % { num_xfrm = emit_complex_float;        numeric_s = ts;         }
+  | 'if' % { num_xfrm = emit_float_followed_by_if; numeric_s = ts; p -= 2; };
 
   flo_suffix =
     flo_pow_suffix
-  | 'r'      % { num_xfrm = emit_rational; }
-  | 'ri'     % { num_xfrm = emit_complex_rational; }
-  | 'rescue' % { num_xfrm = emit_float_followed_by_rescue; p -= 6; };
+  | 'r'      % { num_xfrm = emit_rational;                 numeric_s = ts;         }
+  | 'ri'     % { num_xfrm = emit_complex_rational;         numeric_s = ts;         }
+  | 'rescue' % { num_xfrm = emit_float_followed_by_rescue; numeric_s = ts; p -= 6; };
 
   escaped_nl = "\\" c_nl;
 
@@ -2741,10 +2742,10 @@ void Init_lexer()
 
         VALUE integer = rb_funcall(digits, rb_intern("to_i"), 1, INT2NUM(num_base));
         if (state->version >= 18 && state->version <= 20) {
-          emit_token(state, tINTEGER, integer, num_digits_s, num_suffix_s);
+          emit_token(state, tINTEGER, integer, numeric_s, num_suffix_s);
           p = num_suffix_s - 1;
         } else {
-          num_xfrm(state, integer, num_digits_s, te);
+          num_xfrm(state, integer, numeric_s, te);
         }
 
         fbreak;
