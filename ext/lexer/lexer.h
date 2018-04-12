@@ -129,6 +129,7 @@ static void literal_extend_content(literal*);
 static void literal_extend_space(literal*, long, long);
 static int  literal_words_p(literal*);
 static void literal_infer_indent_level(literal*, VALUE);
+static int next_state_for_literal(literal*);
 
 static void emit_token(lexer_state*, VALUE, VALUE, long, long);
 static void emit_comment(lexer_state*, long, long);

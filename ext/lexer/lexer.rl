@@ -1885,7 +1885,9 @@ void Init_lexer()
           state->herebody_s = current_literal->herebody_s;
         }
 
-        fhold; fret; fbreak;
+        fhold;
+        fnext *next_state_for_literal(current_literal);
+        fbreak;
       }
     }
   };
@@ -1903,7 +1905,8 @@ void Init_lexer()
     }
 
     literal_start_interp_brace(current_literal);
-    fcall expr_value;
+    fnext expr_value;
+    fbreak;
   }
 
   interp_words := |*
@@ -2073,7 +2076,7 @@ void Init_lexer()
           emit(tGVAR);
         }
 
-        fret; fbreak;
+        fnext *stack[--top]; fbreak;
       };
 
       class_var_v => {
@@ -2086,7 +2089,7 @@ void Init_lexer()
         }
 
         emit(tCVAR);
-        fret; fbreak;
+        fnext *stack[--top]; fbreak;
       };
 
       instance_var_v => {
@@ -2099,7 +2102,7 @@ void Init_lexer()
         }
 
         emit(tIVAR);
-        fret; fbreak;
+        fnext *stack[--top]; fbreak;
       };
   *|;
 

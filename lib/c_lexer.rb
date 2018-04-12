@@ -22,6 +22,10 @@ class Parser::Lexer
     def initialize_copy(original)
       @value = original.value
     end
+
+    def to_s
+      "[#{value.to_s(2)} <= cmdarg]"
+    end
   end
 
   class CondProxyStack
@@ -38,6 +42,10 @@ class Parser::Lexer
     def value;       @value || @lexer.cond_state_value;       end
     def initialize_copy(original)
       @value = original.value
+    end
+
+    def to_s
+      "[#{value.to_s(2)} <= cond]"
     end
   end
 
