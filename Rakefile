@@ -41,8 +41,13 @@ namespace :c_lexer do
   end
 end
 
+task :clean do
+  sh 'rm -rf tmp'
+  sh 'rm -f lib/lexer.*'
+  sh 'rm -f ext/lexer/lexer.c'
+  sh 'cd parser && rake clean'
+end
+
 task generate: ['ruby_parser:generate', 'c_lexer:generate']
-
 task test: [:generate, :compile]
-
-task :default => [:test]
+task default: :test
