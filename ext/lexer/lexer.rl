@@ -1617,7 +1617,7 @@ void Init_lexer()
         }
 
         codepoint = rb_funcall(codepoint, rb_intern("chr"), 1, utf8_encoding);
-        state->escape = rb_funcall(state->escape, rb_intern("+"), 1, codepoint);
+        state->escape = rb_str_plus(state->escape, codepoint);
         codepoint_s += RSTRING_LEN(codepoint_str);
       }
     }
