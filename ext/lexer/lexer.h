@@ -128,6 +128,10 @@ static void literal_flush_string(literal*);
 static void literal_extend_content(literal*);
 static void literal_extend_space(literal*, long, long);
 static int  literal_words_p(literal*);
+static int literal_regexp_p(literal*);
+static int literal_heredoc_p(literal*);
+static int literal_squiggly_heredoc_p(literal*);
+static int newline_char_p(VALUE);
 static void literal_infer_indent_level(literal*, VALUE);
 static int next_state_for_literal(literal*);
 

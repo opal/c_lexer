@@ -807,6 +807,26 @@ static int literal_words_p(literal *lit)
          lit->start_tok == tSYMBOLS_BEG || lit->start_tok == tQSYMBOLS_BEG;
 }
 
+static int literal_regexp_p(literal *lit)
+{
+  return lit->start_tok == tREGEXP_BEG;
+}
+
+static int literal_heredoc_p(literal *lit)
+{
+  return lit->heredoc_e != Qnil;
+}
+
+static int literal_squiggly_heredoc_p(literal *lit)
+{
+  return literal_heredoc_p(lit) && lit->dedent_body;
+}
+
+static int newline_char_p(VALUE str)
+{
+  return RTEST(rb_funcall(str, rb_intern("=="), 1, rb_str_new2("\n")));
+}
+
 static int literal_backslash_delimited_p(literal *lit)
 {
   return *RSTRING_PTR(lit->end_delim) == '\\';
@@ -1779,14 +1799,25 @@ void Init_lexer()
       } else {
         literal_extend_string(current_literal, escaped_char, ts, te);
       }
-    } else if (current_literal->start_tok == tREGEXP_BEG) {
+    } else {
+      // if (current_literal->start_tok == tREGEXP_BEG) {
+      if (literal_regexp_p(current_literal)) {
         VALUE token = tok(state, ts, te);
         rb_funcall(token, rb_intern("gsub!"), 2, escaped_next_line, blank_string);
         literal_extend_string(current_literal, token, ts, te);
-    } else if (state->escape == Qnil) {
-      literal_extend_string(current_literal, tok(state, ts, te), ts, te);
-    } else {
-      literal_extend_string(current_literal, state->escape, ts, te);
+      } else if (literal_heredoc_p(current_literal) && newline_char_p(escaped_char)) {
+        if (literal_squiggly_heredoc_p(current_literal)) {
+          literal_extend_string(current_literal, tok(state, ts, te), ts, te);
+        } else {
+          VALUE token = tok(state, ts, te);
+          rb_funcall(token, rb_intern("gsub!"), 2, escaped_next_line, blank_string);
+          literal_extend_string(current_literal, token, ts, te);
+        }
+      } else if (state->escape == Qnil) {
+        literal_extend_string(current_literal, tok(state, ts, te), ts, te);
+      } else {
+        literal_extend_string(current_literal, state->escape, ts, te);
+      }
     }
   }
 
