@@ -1609,7 +1609,7 @@ void Init_lexer()
       if (RTEST(spaces)) {
         codepoint_s += RSTRING_LEN(spaces);
       } else {
-        VALUE codepoint = rb_funcall(codepoint_str, rb_intern("to_i"), 1, INT2NUM(16));
+        VALUE codepoint = rb_str_to_inum(codepoint_str, 16, 0);
         if (NUM2INT(codepoint) >= 0x110000) {
           diagnostic(state, severity_error, unicode_point_too_large, Qnil,
                      range(state, codepoint_s, codepoint_s + RSTRING_LEN(codepoint_str)), empty_array);
@@ -1665,7 +1665,7 @@ void Init_lexer()
   escape = (
       [0-7]{1,3} % {
         VALUE token = tok(state, state->escape_s, p);
-        char c = NUM2INT(rb_funcall(token, rb_intern("to_i"), 1, INT2NUM(8)));
+        char c = NUM2INT(rb_str_to_inum(token, 8, 0));
         c = c % 0x100;
         state->escape = rb_str_new(&c, 1);
         force_encoding(state->escape, state->encoding);
@@ -1673,7 +1673,7 @@ void Init_lexer()
 
     | 'x' xdigit{1,2} % {
         VALUE token = tok(state, state->escape_s + 1, p);
-        char c = NUM2INT(rb_funcall(token, rb_intern("to_i"), 1, INT2NUM(16)));
+        char c = NUM2INT(rb_str_to_inum(token, 16, 0));
         state->escape = rb_str_new(&c, 1);
         force_encoding(state->escape, state->encoding);
       }
@@ -1686,7 +1686,7 @@ void Init_lexer()
 
     | 'u' xdigit{4} % {
         VALUE token = tok(state, state->escape_s + 1, p);
-        int i = NUM2INT(rb_funcall(token, rb_intern("to_i"), 1, INT2NUM(16)));
+        int i = NUM2INT(rb_str_to_inum(token, 16, 0));
         state->escape = rb_enc_uint_chr(i, rb_to_encoding(utf8_encoding));
       }
 
@@ -2088,7 +2088,7 @@ void Init_lexer()
         VALUE str = tok(state, ts, te);
 
         if (is_nthref(str)) {
-          VALUE integer = rb_funcall(tok(state, ts + 1, te), rb_intern("to_i"), 0);
+          VALUE integer = rb_str_to_inum(tok(state, ts + 1, te), 10, 0);
           emit_token(state, tNTH_REF, integer, ts, te);
         } else if (is_backref(str)) {
           emit(tBACK_REF);
@@ -2887,7 +2887,7 @@ void Init_lexer()
                      range(state, invalid_s, invalid_s + 1), empty_array);
         }
 
-        VALUE integer = rb_funcall(digits, rb_intern("to_i"), 1, INT2NUM(num_base));
+        VALUE integer = rb_str_to_inum(digits, num_base, 0);
         if (state->version >= 18 && state->version <= 20) {
           emit_token(state, tINTEGER, integer, numeric_s, num_suffix_s);
           p = num_suffix_s - 1;
@@ -2912,7 +2912,7 @@ void Init_lexer()
           diagnostic(state, severity_error, trailing_in_number, hash,
                      range(state, te - 1, te), empty_array);
         } else {
-          VALUE integer = rb_funcall(tok(state, ts, te - 1), rb_intern("to_i"), 0);
+          VALUE integer = rb_str_to_inum(tok(state, ts, te - 1), 10, 0);
           emit_token(state, tINTEGER, integer, ts, te - 1);
           fhold; fbreak;
         }
