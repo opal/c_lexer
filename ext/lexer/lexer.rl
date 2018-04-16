@@ -145,7 +145,7 @@ static VALUE lexer_set_source_buffer(VALUE self, VALUE buffer)
 
   if (RTEST(buffer)) {
     state->source = rb_funcall(buffer, rb_intern("source"), 0);
-    state->encoding = rb_funcall(state->source, rb_intern("encoding"), 0);
+    state->encoding = rb_obj_encoding(state->source);
 
     if (state->encoding == utf8_encoding) {
       state->source_pts = rb_funcall(state->source, rb_intern("unpack"), 1, rb_str_new2("U*"));
