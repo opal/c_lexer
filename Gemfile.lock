@@ -8,7 +8,7 @@ PATH
 PATH
   remote: parser
   specs:
-    parser (2.5.0.5)
+    parser (2.5.1.0)
       ast (~> 2.4.0)
 
 GEM
