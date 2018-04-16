@@ -1043,34 +1043,27 @@ static void emit_int(lexer_state *state, VALUE val, long start, long end)
 
 static void emit_rational(lexer_state *state, VALUE val, long start, long end)
 {
-  emit_token(state, tRATIONAL, rb_funcall(Qnil, rb_intern("Rational"), 1, val),
-             start, end);
+  emit_token(state, tRATIONAL, rb_Rational1(val), start, end);
 }
 
 static void emit_complex(lexer_state *state, VALUE val, long start, long end)
 {
-  emit_token(state, tIMAGINARY, rb_funcall(Qnil, rb_intern("Complex"), 2, Qzero, val),
-             start, end);
+  emit_token(state, tIMAGINARY, rb_Complex(Qzero, val), start, end);
 }
 
 static void emit_complex_rational(lexer_state *state, VALUE val, long start, long end)
 {
-  VALUE rational = rb_funcall(Qnil, rb_intern("Rational"), 1, val);
-  emit_token(state, tIMAGINARY, rb_funcall(Qnil, rb_intern("Complex"), 2, Qzero, rational),
-             start, end);
+  emit_token(state, tIMAGINARY, rb_Complex(Qzero, rb_Rational1(val)), start, end);
 }
 
 static void emit_float(lexer_state *state, VALUE val, long start, long end)
 {
-  emit_token(state, tFLOAT, rb_funcall(Qnil, rb_intern("Float"), 1, val),
-             start, end);
+  emit_token(state, tFLOAT, rb_Float(val), start, end);
 }
 
 static void emit_complex_float(lexer_state *state, VALUE val, long start, long end)
 {
-  VALUE fval = rb_funcall(Qnil, rb_intern("Float"), 1, val);
-  emit_token(state, tIMAGINARY, rb_funcall(Qnil, rb_intern("Complex"), 2, Qzero, fval),
-             start, end);
+  emit_token(state, tIMAGINARY, rb_Complex(Qzero, rb_Float(val)), start, end);
 }
 
 static void emit_int_followed_by_if(lexer_state *state, VALUE val, long start, long end)
@@ -1085,11 +1078,11 @@ static void emit_int_followed_by_rescue(lexer_state *state, VALUE val, long star
 
 static void emit_float_followed_by_if(lexer_state *state, VALUE val, long start, long end)
 {
-  emit_token(state, tFLOAT, rb_funcall(Qnil, rb_intern("Float"), 1, val), start, end);
+  emit_token(state, tFLOAT, rb_Float(val), start, end);
 }
 static void emit_float_followed_by_rescue(lexer_state *state, VALUE val, long start, long end)
 {
-  emit_token(state, tFLOAT, rb_funcall(Qnil, rb_intern("Float"), 1, val), start, end);
+  emit_token(state, tFLOAT, rb_Float(val), start, end);
 }
 
 static int next_state_for_literal(literal *lit) {
@@ -2940,7 +2933,7 @@ void Init_lexer()
         VALUE digits = tok(state, ts, num_suffix_s);
 
         if (state->version >= 18 && state->version <= 20) {
-          VALUE fval = rb_funcall(Qnil, rb_intern("Float"), 1, digits);
+          VALUE fval = rb_Float(digits);
           emit_token(state, tFLOAT, fval, ts, num_suffix_s);
           p = num_suffix_s - 1;
         } else {
