@@ -818,9 +818,9 @@ static int literal_squiggly_heredoc_p(literal *lit)
   return literal_heredoc_p(lit) && lit->dedent_body;
 }
 
-static int newline_char_p(VALUE str)
+inline int newline_char_p(VALUE str)
 {
-  return RTEST(rb_funcall(str, rb_intern("=="), 1, rb_str_new2("\n")));
+  return RTEST(rb_str_equal(str, rb_str_new2("\n")));
 }
 
 static int literal_backslash_delimited_p(literal *lit)
