@@ -12,6 +12,11 @@
 %%machine lex;
 %%write data;
 
+inline void force_encoding(VALUE str, VALUE enc)
+{
+  rb_enc_associate(str, rb_to_encoding(enc));
+}
+
 static VALUE lexer_alloc(VALUE klass)
 {
   lexer_state *state = xmalloc(sizeof(lexer_state));
@@ -512,7 +517,7 @@ static void literal_init(literal *self, lexer_state *lexer, VALUE str_type,
                      !heredoc_e);
 
   self->buffer   = rb_str_new2("");
-  rb_funcall(self->buffer, rb_intern("force_encoding"), 1, lexer->encoding);
+  force_encoding(self->buffer, lexer->encoding);
 
   self->buffer_s = 0;
   self->buffer_e = 0;
@@ -1624,7 +1629,8 @@ void Init_lexer()
 
     if (state->escape == Qnil) {
       VALUE codepoint = rb_funcall(state->source_buffer, rb_intern("slice"), 1, INT2NUM(p - 1));
-      state->escape = rb_funcall(codepoint, rb_intern("force_encoding"), 1, state->encoding);
+      state->escape = codepoint;
+      force_encoding(codepoint, state->encoding);
     }
   }
 
@@ -1636,13 +1642,13 @@ void Init_lexer()
   action slash_c_char {
     char c = *RSTRING_PTR(state->escape) & 0x9f;
     state->escape = rb_str_new(&c, 1);
-    rb_funcall(state->escape, rb_intern("force_encoding"), 1, state->encoding);
+    force_encoding(state->escape, state->encoding);
   }
 
   action slash_m_char {
     char c = *RSTRING_PTR(state->escape) | 0x80;
     state->escape = rb_str_new(&c, 1);
-    rb_funcall(state->escape, rb_intern("force_encoding"), 1, state->encoding);
+    force_encoding(state->escape, state->encoding);
   }
 
   maybe_escaped_char = (
@@ -1662,14 +1668,14 @@ void Init_lexer()
         char c = NUM2INT(rb_funcall(token, rb_intern("to_i"), 1, INT2NUM(8)));
         c = c % 0x100;
         state->escape = rb_str_new(&c, 1);
-        rb_funcall(state->escape, rb_intern("force_encoding"), 1, state->encoding);
+        force_encoding(state->escape, state->encoding);
       }
 
     | 'x' xdigit{1,2} % {
         VALUE token = tok(state, state->escape_s + 1, p);
         char c = NUM2INT(rb_funcall(token, rb_intern("to_i"), 1, INT2NUM(16)));
         state->escape = rb_str_new(&c, 1);
-        rb_funcall(state->escape, rb_intern("force_encoding"), 1, state->encoding);
+        force_encoding(state->escape, state->encoding);
       }
 
     | 'x' ( c_any - xdigit )
