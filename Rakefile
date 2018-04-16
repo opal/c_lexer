@@ -4,8 +4,8 @@ require 'rake/extensiontask'
 
 Rake::TestTask.new do |t|
   t.ruby_opts  = ["-rc_lexer"]
-  t.libs       = %w(lib/ parser/test/ parser/lib/)
-  t.test_files = %w(parser/test/test_lexer.rb parser/test/test_parser.rb)
+  t.libs       = %w(lib/ vendor/parser/test/ vendor/parser/lib/)
+  t.test_files = %w(vendor/parser/test/test_lexer.rb vendor/parser/test/test_parser.rb)
   t.warning    = false
 end
 
@@ -14,12 +14,12 @@ Rake::ExtensionTask.new('lexer')
 namespace :ruby_parser do
   desc "'rake generate' in the Ruby Parser"
   task :generate do
-    sh 'cd parser && rake generate'
+    sh 'cd vendor/parser && rake generate'
   end
 
   desc "'rake clean' in the Ruby Parser"
   task :clean do
-    sh 'cd parser && rake clean'
+    sh 'cd vendor/parser && rake clean'
   end
 end
 
@@ -42,7 +42,7 @@ task :clean do
   sh 'rm -rf tmp'
   sh 'rm -f lib/lexer.*'
   sh 'rm -f ext/lexer/lexer.c'
-  sh 'cd parser && rake clean'
+  sh 'cd vendor/parser && rake clean'
 end
 
 task generate: ['ruby_parser:generate', 'c_lexer:generate']

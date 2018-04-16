@@ -6,4 +6,4 @@ git_source(:github) { |repo_name| 'https://github.com/#{repo_name}' }
 gemspec
 
 gem 'pry'
-gem 'parser', path: 'parser'
+gem 'parser', path: 'vendor/parser'

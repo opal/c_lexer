@@ -6,7 +6,7 @@ PATH
       parser (>= 2.5.0)
 
 PATH
-  remote: parser
+  remote: vendor/parser
   specs:
     parser (2.5.1.0)
       ast (~> 2.4.0)

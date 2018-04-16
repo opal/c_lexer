@@ -13,7 +13,7 @@ Gem::Specification.new do |spec|
   spec.homepage      = 'https://github.com/iliabylich/c_lexer'
 
   spec.files         = `git ls-files`.split.reject do |f|
-    f.match(%r{^(test|spec|features)/})
+    f.match(%r{^(test|spec|features|vendor)/})
   end
   spec.bindir        = 'exe'
   spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
