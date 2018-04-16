@@ -200,21 +200,12 @@ static VALUE lexer_advance(VALUE self)
   if (RARRAY_LEN(state->token_queue) > 0) {
     return rb_ary_shift(state->token_queue);
   } else if (cs == lex_error) {
-    // TODO: consider using rb_ary_new3(long n, ...n values)
-    VALUE token = rb_ary_new2(2);
-    VALUE info  = rb_ary_new2(2);
-    rb_ary_store(token, 0, Qfalse);
-    rb_ary_store(token, 1, info);
-    rb_ary_store(info,  0, rb_str_new2("$error"));
-    rb_ary_store(info,  1, range(state, p - 1, p));
+    VALUE info  = rb_ary_new3(2, rb_str_new2("$error"), range(state, p - 1, p));
+    VALUE token = rb_ary_new3(2, Qfalse, info);
     return token;
   } else {
-    VALUE token = rb_ary_new2(2);
-    VALUE info  = rb_ary_new2(2);
-    rb_ary_store(token, 0, Qfalse);
-    rb_ary_store(token, 1, info);
-    rb_ary_store(info,  0, rb_str_new2("$eof"));
-    rb_ary_store(info,  1, range(state, eof - 2, eof - 2));
+    VALUE info  = rb_ary_new3(2, rb_str_new2("$eof"), range(state, eof - 2, eof - 2));
+    VALUE token = rb_ary_new3(2, Qfalse, info);
     return token;
   }
 }
@@ -856,13 +847,8 @@ static void literal_infer_indent_level(literal *lit, VALUE line)
 
 static void emit_token(lexer_state *state, VALUE type, VALUE value, long start, long end)
 {
-  VALUE token = rb_ary_new2(2);
-  VALUE info  = rb_ary_new2(2);
-
-  rb_ary_store(token, 0, type);
-  rb_ary_store(token, 1, info);
-  rb_ary_store(info,  0, value);
-  rb_ary_store(info,  1, range(state, start, end));
+  VALUE info  = rb_ary_new3(2, value, range(state, start, end));
+  VALUE token = rb_ary_new3(2, type, info);
 
   rb_ary_push(state->token_queue, token);
 
@@ -875,13 +861,10 @@ static void emit_comment(lexer_state *state, long start, long end)
   VALUE rng = Qnil;
 
   if (state->tokens != Qnil) {
-    VALUE token = rb_ary_new2(2);
-    VALUE info  = rb_ary_new2(2);
-    rb_ary_store(token, 0, tCOMMENT);
-    rb_ary_store(token, 1, info);
-    rb_ary_store(info,  0, tok(state, start, end));
     rng = range(state, start, end);
-    rb_ary_store(info,  1, rng);
+
+    VALUE info  = rb_ary_new3(2, tok(state, start, end), rng);
+    VALUE token = rb_ary_new3(2, tCOMMENT, info);
     rb_ary_push(state->tokens, token);
   }
 
