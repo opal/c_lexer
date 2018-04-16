@@ -12,11 +12,6 @@
 %%machine lex;
 %%write data;
 
-inline void force_encoding(VALUE str, VALUE enc)
-{
-  rb_enc_associate(str, rb_to_encoding(enc));
-}
-
 static VALUE lexer_alloc(VALUE klass)
 {
   lexer_state *state = xmalloc(sizeof(lexer_state));
@@ -478,6 +473,11 @@ static VALUE lexer_get_dedent_level(VALUE self)
 static VALUE lexer_do_nothing(VALUE self, VALUE arg)
 {
   return arg;
+}
+
+static inline void force_encoding(VALUE str, VALUE enc)
+{
+  rb_enc_associate(str, rb_to_encoding(enc));
 }
 
 static void literal_init(literal *self, lexer_state *lexer, VALUE str_type,
@@ -1178,14 +1178,22 @@ static VALUE escape_char(VALUE str)
   }
 }
 
-int str_start_with_p(VALUE str, const char *pattern)
+// assumes that pattern contains only one char
+static inline int str_start_with_p(VALUE str, const char *pattern)
 {
-  return RTEST(rb_funcall(str, rb_intern("start_with?"), 1, rb_str_new2(pattern)));
+  if (RSTRING_LEN(str) == 0) {
+    return 0;
+  }
+  return (memcmp(RSTRING_PTR(str), pattern, 1) == 0);
 }
 
-int str_end_with_p(VALUE str, const char *pattern)
+// assumes that pattern contains only one char
+static inline int str_end_with_p(VALUE str, const char *pattern)
 {
-  return RTEST(rb_funcall(str, rb_intern("end_with?"), 1, rb_str_new2(pattern)));
+  if (RSTRING_LEN(str) == 0) {
+    return 0;
+  }
+  return (memcmp(RSTRING_PTR(str) + RSTRING_LEN(str) - 1, pattern, 1) == 0);
 }
 
 def_lexer_attribute(diagnostics);

@@ -89,8 +89,9 @@ static int pop_literal(lexer_state*);
 static VALUE array_last(VALUE);
 static VALUE unescape_char(char);
 static VALUE escape_char(VALUE);
-int str_start_with_p(VALUE, const char*);
-int str_end_with_p(VALUE, const char*);
+static inline int str_start_with_p(VALUE, const char*);
+static inline int str_end_with_p(VALUE, const char*);
+static inline void force_encoding(VALUE, VALUE);
 
 #define emit(type) emit_token(state, type, tok(state, ts, te), ts, te)
 
