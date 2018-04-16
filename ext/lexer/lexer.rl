@@ -3001,6 +3001,12 @@ void Init_lexer()
           stack_state_pop(&state->cmdarg);
         }
 
+        if (state->version >= 25) {
+          fnext expr_end;
+        } else {
+          fnext expr_endarg;
+        }
+
         fnext expr_endarg; fbreak;
       };
 
@@ -3029,7 +3035,7 @@ void Init_lexer()
           stack_state_pop(&state->cmdarg);
         }
 
-        if (state->version >= 24) {
+        if (state->version >= 25) {
           fnext expr_end;
         } else {
           fnext expr_endarg;
