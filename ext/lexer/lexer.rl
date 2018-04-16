@@ -2962,33 +2962,35 @@ void Init_lexer()
         fnext expr_arg; fbreak;
       };
 
+      '&'   => { emit(tAMPER2);  fnext expr_value; fbreak; };
+      '&&'  => { emit(tANDOP);   fnext expr_value; fbreak; };
+      '||'  => { emit(tOROP);    fnext expr_value; fbreak; };
+      '^'   => { emit(tCARET);   fnext expr_value; fbreak; };
+      '+'   => { emit(tPLUS);    fnext expr_value; fbreak; };
+      '-'   => { emit(tMINUS);   fnext expr_value; fbreak; };
+      '*'   => { emit(tSTAR2);   fnext expr_value; fbreak; };
+      '/'   => { emit(tDIVIDE);  fnext expr_value; fbreak; };
+      '**'  => { emit(tPOW);     fnext expr_value; fbreak; };
+      '<<'  => { emit(tLSHFT);   fnext expr_value; fbreak; };
+      '>>'  => { emit(tRSHFT);   fnext expr_value; fbreak; };
+      '%'   => { emit(tPERCENT); fnext expr_value; fbreak; };
+
+      '=~'  => { emit(tMATCH);   fnext expr_value; fbreak; };
+      '!~'  => { emit(tNMATCH);  fnext expr_value; fbreak; };
+      '=='  => { emit(tEQ);      fnext expr_value; fbreak; };
+      '!='  => { emit(tNEQ);     fnext expr_value; fbreak; };
+      '===' => { emit(tEQQ);     fnext expr_value; fbreak; };
+      '<'   => { emit(tLT);      fnext expr_value; fbreak; };
+      '<='  => { emit(tLEQ);     fnext expr_value; fbreak; };
+      '>'   => { emit(tGT);      fnext expr_value; fbreak; };
+      '>='  => { emit(tGEQ);     fnext expr_value; fbreak; };
+      '<=>' => { emit(tCMP);     fnext expr_value; fbreak; };
+      '=>'  => { emit(tASSOC);   fnext expr_value; fbreak; };
+
       e_lparen => { emit(tLPAREN2); fnext expr_beg; fbreak; };
-      '&'   => { emit(tAMPER2);  fnext expr_beg; fbreak; };
-      '|'   => { emit(tPIPE);    fnext expr_beg; fbreak; };
-      '&&'  => { emit(tANDOP);   fnext expr_beg; fbreak; };
-      '||'  => { emit(tOROP);    fnext expr_beg; fbreak; };
-      '^'   => { emit(tCARET);   fnext expr_beg; fbreak; };
-      '+'   => { emit(tPLUS);    fnext expr_beg; fbreak; };
-      '-'   => { emit(tMINUS);   fnext expr_beg; fbreak; };
-      '*'   => { emit(tSTAR2);   fnext expr_beg; fbreak; };
-      '/'   => { emit(tDIVIDE);  fnext expr_beg; fbreak; };
-      '**'  => { emit(tPOW);     fnext expr_beg; fbreak; };
-      '~'   => { emit(tTILDE);   fnext expr_beg; fbreak; };
-      '<<'  => { emit(tLSHFT);   fnext expr_beg; fbreak; };
-      '>>'  => { emit(tRSHFT);   fnext expr_beg; fbreak; };
-      '%'   => { emit(tPERCENT); fnext expr_beg; fbreak; };
-      '=~'  => { emit(tMATCH);   fnext expr_beg; fbreak; };
-      '!~'  => { emit(tNMATCH);  fnext expr_beg; fbreak; };
-      '=='  => { emit(tEQ);      fnext expr_beg; fbreak; };
-      '!='  => { emit(tNEQ);     fnext expr_beg; fbreak; };
-      '!'   => { emit(tBANG);    fnext expr_beg; fbreak; };
-      '===' => { emit(tEQQ);     fnext expr_beg; fbreak; };
-      '<'   => { emit(tLT);      fnext expr_beg; fbreak; };
-      '<='  => { emit(tLEQ);     fnext expr_beg; fbreak; };
-      '>'   => { emit(tGT);      fnext expr_beg; fbreak; };
-      '>='  => { emit(tGEQ);     fnext expr_beg; fbreak; };
-      '<=>' => { emit(tCMP);     fnext expr_beg; fbreak; };
-      '=>'  => { emit(tASSOC);   fnext expr_beg; fbreak; };
+      '|'      => { emit(tPIPE);    fnext expr_beg; fbreak; };
+      '~'      => { emit(tTILDE);   fnext expr_beg; fbreak; };
+      '!'      => { emit(tBANG);    fnext expr_beg; fbreak; };
 
       e_rbrace => {
         emit(tRCURLY);
