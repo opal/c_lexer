@@ -2,7 +2,7 @@
 
 A C port of the whitequark/parser's lexer.
 
-Initially based on https://github.com/whitequark/parser/pull/248 (thanks @alexdowad).
+Initially based on [whitequark/parser#248](https://github.com/whitequark/parser/pull/248) (thanks [@alexdowad](https://github.com/alexdowad)).
 
 This project is still under development.
 
@@ -21,4 +21,4 @@ It should print `Using C lexer`.
 
 ## Contributing
 
-Bug reports and pull requests are welcome on GitHub at https://github.com/[USERNAME]/c_lexer.
+Bug reports and pull requests are welcome on GitHub at https://github.com/opal/c_lexer.
