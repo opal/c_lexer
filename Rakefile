@@ -47,4 +47,5 @@ end
 
 task generate: ['ruby_parser:generate', 'c_lexer:generate']
 task test: [:generate, :compile]
+task build: :generate
 task default: :test
