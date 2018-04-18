@@ -2422,7 +2422,7 @@ void Init_lexer()
         } else {
           emit_token(state, tLBRACE_ARG, rb_str_new2("{"), te - 1, te);
         }
-        fnext expr_value;
+        fnext expr_value; fbreak;
       };
 
       'do' => { emit_do(state, 1, ts, te); fnext expr_value; fbreak; };
