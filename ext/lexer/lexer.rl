@@ -776,6 +776,7 @@ static void literal_flush_string(literal *lit)
   if (RSTRING_LEN(lit->buffer) > 0) {
     emit_token(lit->lexer, tSTRING_CONTENT, lit->buffer, lit->buffer_s, lit->buffer_e);
     lit->buffer = rb_str_new2("");
+    force_encoding(lit->buffer, lit->lexer->encoding);
     lit->buffer_s = 0;
     lit->buffer_e = 0;
     lit->space_emitted = 0;
