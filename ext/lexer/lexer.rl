@@ -173,9 +173,9 @@ static VALUE lexer_advance(VALUE self)
   void (*num_xfrm)(lexer_state*, VALUE, long, long); /* numeric suffix-induced transformation */
   lexer_state *state;
   int *stack;
-  VALUE ident_tok;
-  long ident_ts, ident_te;
-  long numeric_s;
+  VALUE ident_tok = Qnil;
+  long ident_ts = 0, ident_te = 0;
+  long numeric_s = 0;
   Data_Get_Struct(self, lexer_state, state);
 
   if (RARRAY_LEN(state->token_queue) > 0)
