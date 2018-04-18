@@ -14,10 +14,12 @@ Gem::Specification.new do |spec|
 
   spec.files         = `git ls-files`.split.reject do |f|
     f.match(%r{^(test|spec|features|vendor)/})
-  end
+  end + ['ext/lexer/lexer.c']
+
   spec.bindir        = 'exe'
   spec.executables   = spec.files.grep(%r{^exe/}) { |f| File.basename(f) }
   spec.require_paths = ['lib']
+  spec.extensions    = ['ext/lexer/extconf.rb']
 
   spec.add_dependency             'ast',           '~> 2.4.0'
   spec.add_dependency             'parser',        '= 2.5.1.0'
