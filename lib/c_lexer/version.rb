@@ -1,3 +1,3 @@
 module CLexer
-  VERSION = '0.1.0'
+  VERSION = '2.5.1.0'
 end
