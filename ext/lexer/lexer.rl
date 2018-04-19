@@ -97,11 +97,11 @@ static VALUE lexer_reset(int argc, VALUE *argv, VALUE self)
 
   if (RTEST(reset_state)) {
     state->cs = lex_en_line_begin;
-    ss_stack_clear(&state->cond_stack);
-    ss_stack_clear(&state->cmdarg_stack);
-    lit_stack_clear(&state->literal_stack);
+
     state->cond   = 0;
     state->cmdarg = 0;
+    ss_stack_clear(&state->cond_stack);
+    ss_stack_clear(&state->cmdarg_stack);
   }
 
   state->force_utf32 = 0;
@@ -109,22 +109,42 @@ static VALUE lexer_reset(int argc, VALUE *argv, VALUE self)
   state->source       = Qnil;
   state->source_pts   = Qnil;
   state->encoding     = Qnil;
-  state->escape       = Qnil;
 
   state->p            = 0;
+  // @ts is a local variable
+  // @te is a local variable
+  // @act is a local variable
 
+  // @stack is handled on prepush
+  // @top is handled on prepush
+
+  // Lexer state
   state->token_queue  = rb_ary_new();
-  state->lambda_stack = rb_ary_new();
+  lit_stack_clear(&state->literal_stack);
 
-  state->paren_nest   = 0;
-  state->in_kwarg     = 0;
+  state->eq_begin_s   = 0;
+  // @sharp_s is a local variable
 
   state->newline_s    = 0;
-  state->eq_begin_s   = 0;
-  state->herebody_s   = 0;
+
+  // @num_base is a local variable
+  // @num_digits_s is a local variable
+  // @num_suffix_s is a local variable
+  // @num_xfrm is a local variable
+
   state->escape_s     = 0;
+  state->escape       = Qnil;
+
+  state->herebody_s   = 0;
+
+  state->paren_nest   = 0;
+  state->lambda_stack = rb_ary_new();
 
   state->dedent_level = -1;
+
+  // @command_state is a local variable
+
+  state->in_kwarg     = 0;
 
   state->cs_before_block_comment = lex_en_line_begin;
 
