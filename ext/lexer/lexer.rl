@@ -287,6 +287,35 @@ static VALUE lexer_pop_cond(VALUE self)
   return Qnil;
 }
 
+static VALUE lexer_get_in_kwarg(VALUE self)
+{
+  INIT_LEXER_STATE(self, state);
+  return state->in_kwarg ? Qtrue : Qfalse;
+}
+
+static VALUE lexer_set_in_kwarg(VALUE self, VALUE val)
+{
+  INIT_LEXER_STATE(self, state);
+  state->in_kwarg = RTEST(val) ? 1 : 0;
+  return val;
+}
+
+static VALUE lexer_get_dedent_level(VALUE self)
+{
+  INIT_LEXER_STATE(self, state);
+  int result = state->dedent_level;
+  state->dedent_level = -1;
+  if (result == -1)
+    return Qnil;
+  else
+    return INT2NUM(result);
+}
+
+static VALUE lexer_set_force_utf32(VALUE self, VALUE arg)
+{
+  return arg;
+}
+
 static VALUE lexer_advance(VALUE self)
 {
   int cs, act = 0, top, command_state;
@@ -331,35 +360,6 @@ static VALUE lexer_advance(VALUE self)
     VALUE token = rb_ary_new3(2, Qfalse, info);
     return token;
   }
-}
-
-static VALUE lexer_get_in_kwarg(VALUE self)
-{
-  INIT_LEXER_STATE(self, state);
-  return state->in_kwarg ? Qtrue : Qfalse;
-}
-
-static VALUE lexer_set_in_kwarg(VALUE self, VALUE val)
-{
-  INIT_LEXER_STATE(self, state);
-  state->in_kwarg = RTEST(val) ? 1 : 0;
-  return val;
-}
-
-static VALUE lexer_get_dedent_level(VALUE self)
-{
-  INIT_LEXER_STATE(self, state);
-  int result = state->dedent_level;
-  state->dedent_level = -1;
-  if (result == -1)
-    return Qnil;
-  else
-    return INT2NUM(result);
-}
-
-static VALUE lexer_do_nothing(VALUE self, VALUE arg)
-{
-  return arg;
 }
 
 static inline void force_encoding(VALUE str, VALUE enc)
@@ -1318,7 +1318,7 @@ void Init_lexer()
   rb_define_method(c_Lexer, "dedent_level",   lexer_get_dedent_level,  0);
   rb_define_method(c_Lexer, "source_buffer",  lexer_get_source_buffer, 0);
   rb_define_method(c_Lexer, "source_buffer=", lexer_set_source_buffer, 1);
-  rb_define_method(c_Lexer, "force_utf32=",   lexer_do_nothing,        1);
+  rb_define_method(c_Lexer, "force_utf32=",   lexer_set_force_utf32,   1);
 
   VALUE m_Source   = rb_const_get(m_Parser, rb_intern("Source"));
   comment_klass    = rb_const_get(m_Source, rb_intern("Comment"));
