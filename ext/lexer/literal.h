@@ -57,5 +57,6 @@ static int literal_squiggly_heredoc_p(literal*);
 static int newline_char_p(VALUE);
 static void literal_infer_indent_level(literal*, VALUE);
 static int next_state_for_literal(literal*);
+static void literal_clear_buffer(literal*);
 
 #endif

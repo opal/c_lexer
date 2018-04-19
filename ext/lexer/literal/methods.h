@@ -34,11 +34,7 @@ static void literal_init(literal *self, lexer_state *lexer, VALUE str_type,
                       self->str_type == DOUBLE_QUOTE) &&
                      !heredoc_e);
 
-  self->buffer   = rb_str_new2("");
-  force_encoding(self->buffer, lexer->encoding);
-
-  self->buffer_s = 0;
-  self->buffer_e = 0;
+  literal_clear_buffer(self);
 
   if (!self->monolithic) {
     literal_emit_start_tok(self);
@@ -194,6 +190,32 @@ static VALUE literal_get_end_delim(VALUE str)
   }
 }
 
+static int literal_words_p(literal *lit)
+{
+  return lit->start_tok == tWORDS_BEG   || lit->start_tok == tQWORDS_BEG ||
+         lit->start_tok == tSYMBOLS_BEG || lit->start_tok == tQSYMBOLS_BEG;
+}
+
+static int literal_regexp_p(literal *lit)
+{
+  return lit->start_tok == tREGEXP_BEG;
+}
+
+static int literal_heredoc_p(literal *lit)
+{
+  return lit->heredoc_e ? 1 : 0;
+}
+
+static int literal_squiggly_heredoc_p(literal *lit)
+{
+  return literal_heredoc_p(lit) && lit->dedent_body;
+}
+
+static int literal_backslash_delimited_p(literal *lit)
+{
+  return *RSTRING_PTR(lit->end_delim) == '\\';
+}
+
 static int literal_munge_escape_p(literal *lit, VALUE character)
 {
   char *p = RSTRING_PTR(character);
@@ -210,8 +232,7 @@ static int literal_munge_escape_p(literal *lit, VALUE character)
   }
 }
 
-static int literal_nest_and_try_closing(literal *lit, VALUE delimiter, long ts, long te,
-                                  VALUE lookahead)
+static int literal_nest_and_try_closing(literal *lit, VALUE delimiter, long ts, long te, VALUE lookahead)
 {
   if (lit->start_delim != Qnil && rb_equal(lit->start_delim, delimiter)) {
     lit->nesting += 1;
@@ -251,18 +272,26 @@ static int literal_nest_and_try_closing(literal *lit, VALUE delimiter, long ts, 
   }
 }
 
-static void literal_emit_start_tok(literal *lit)
+static void literal_infer_indent_level(literal *lit, VALUE line)
 {
-  VALUE str_type = literal_str_type_to_string(lit->str_type);
+  if (!lit->dedent_body)
+    return;
 
-  if (*RSTRING_PTR(str_type) == '%')
-    rb_str_concat(str_type, lit->delimiter);
+  char *p = RSTRING_PTR(line);
+  int indent_level = 0;
 
-  long str_e = lit->heredoc_e;
-  if (str_e == 0)
-    str_e = lit->str_s + NUM2INT(rb_str_length(str_type));
-
-  emit_token(lit->lexer, lit->start_tok, str_type, lit->str_s, str_e);
+  while (*p) {
+    if (*p == ' ') {
+      indent_level += 1;
+    } else if (*p == '\t') {
+      indent_level += (8 - (indent_level % 8));
+    } else {
+      if (lit->dedent_level == -1 || lit->dedent_level > indent_level)
+        lit->dedent_level = indent_level;
+      break;
+    }
+    p++;
+  }
 }
 
 static void literal_start_interp_brace(literal *lit)
@@ -293,10 +322,7 @@ static void literal_flush_string(literal *lit)
 
   if (RSTRING_LEN(lit->buffer) > 0) {
     emit_token(lit->lexer, tSTRING_CONTENT, lit->buffer, lit->buffer_s, lit->buffer_e);
-    lit->buffer = rb_str_new2("");
-    force_encoding(lit->buffer, lit->lexer->encoding);
-    lit->buffer_s = 0;
-    lit->buffer_e = 0;
+    literal_clear_buffer(lit);
     lit->space_emitted = 0;
   }
 }
@@ -316,55 +342,30 @@ static void literal_extend_space(literal *lit, long ts, long te)
   }
 }
 
-static int literal_words_p(literal *lit)
+static void literal_clear_buffer(literal *lit)
 {
-  return lit->start_tok == tWORDS_BEG   || lit->start_tok == tQWORDS_BEG ||
-         lit->start_tok == tSYMBOLS_BEG || lit->start_tok == tQSYMBOLS_BEG;
+  lit->buffer   = rb_str_new2("");
+  force_encoding(lit->buffer, lit->lexer->encoding);
+
+  lit->buffer_s = 0;
+  lit->buffer_e = 0;
 }
 
-static int literal_regexp_p(literal *lit)
+static void literal_emit_start_tok(literal *lit)
 {
-  return lit->start_tok == tREGEXP_BEG;
-}
+  VALUE str_type = literal_str_type_to_string(lit->str_type);
 
-static int literal_heredoc_p(literal *lit)
-{
-  return lit->heredoc_e ? 1 : 0;
-}
+  if (*RSTRING_PTR(str_type) == '%')
+    rb_str_concat(str_type, lit->delimiter);
 
-static int literal_squiggly_heredoc_p(literal *lit)
-{
-  return literal_heredoc_p(lit) && lit->dedent_body;
+  long str_e = lit->heredoc_e;
+  if (str_e == 0)
+    str_e = lit->str_s + NUM2INT(rb_str_length(str_type));
+
+  emit_token(lit->lexer, lit->start_tok, str_type, lit->str_s, str_e);
 }
 
 inline int newline_char_p(VALUE str)
 {
   return RTEST(rb_str_equal(str, rb_str_new2("\n")));
-}
-
-static int literal_backslash_delimited_p(literal *lit)
-{
-  return *RSTRING_PTR(lit->end_delim) == '\\';
-}
-
-static void literal_infer_indent_level(literal *lit, VALUE line)
-{
-  if (!lit->dedent_body)
-    return;
-
-  char *p = RSTRING_PTR(line);
-  int indent_level = 0;
-
-  while (*p) {
-    if (*p == ' ') {
-      indent_level += 1;
-    } else if (*p == '\t') {
-      indent_level += (8 - (indent_level % 8));
-    } else {
-      if (lit->dedent_level == -1 || lit->dedent_level > indent_level)
-        lit->dedent_level = indent_level;
-      break;
-    }
-    p++;
-  }
 }
