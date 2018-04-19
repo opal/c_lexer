@@ -210,7 +210,7 @@ static int literal_munge_escape_p(literal *lit, VALUE character)
   }
 }
 
-static int literal_nest_and_close(literal *lit, VALUE delimiter, long ts, long te,
+static int literal_nest_and_try_closing(literal *lit, VALUE delimiter, long ts, long te,
                                   VALUE lookahead)
 {
   if (lit->start_delim != Qnil && rb_equal(lit->start_delim, delimiter)) {
@@ -270,7 +270,7 @@ static void literal_start_interp_brace(literal *lit)
   lit->interp_braces += 1;
 }
 
-static int literal_end_interp_brace_and_close(literal *lit)
+static int literal_end_interp_brace_and_try_closing(literal *lit)
 {
   return --lit->interp_braces == 0;
 }

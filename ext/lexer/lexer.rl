@@ -1285,7 +1285,7 @@ void Init_lexer()
     literal *current_literal = lit_stack_top(&state->literal_stack);
 
     if (!current_literal->heredoc_e &&
-         literal_nest_and_close(current_literal, string, ts, te, lookahead)) {
+         literal_nest_and_try_closing(current_literal, string, ts, te, lookahead)) {
       VALUE token = array_last(state->token_queue);
       if (rb_ary_entry(token, 0) == tLABEL_END) {
         p += 1;
@@ -1349,7 +1349,7 @@ void Init_lexer()
         rb_funcall(line, rb_intern("gsub!"), 2, cr_then_anything_to_eol, blank_string);
       }
 
-      if (literal_nest_and_close(current_literal, line, state->herebody_s, ts, Qnil)) {
+      if (literal_nest_and_try_closing(current_literal, line, state->herebody_s, ts, Qnil)) {
         state->herebody_s = te;
         p = current_literal->heredoc_e - 1;
         fnext *pop_literal(state); fbreak;
@@ -1358,7 +1358,7 @@ void Init_lexer()
         state->herebody_s = te;
       }
     } else {
-      if (literal_nest_and_close(current_literal, tok(state, ts, te), ts, te, Qnil)) {
+      if (literal_nest_and_try_closing(current_literal, tok(state, ts, te), ts, te, Qnil)) {
         fnext *pop_literal(state); fbreak;
       }
 
@@ -1409,7 +1409,7 @@ void Init_lexer()
   e_rbrace = '}' % {
     literal *current_literal = lit_stack_top(&state->literal_stack);
     if (current_literal != NULL) {
-      if (literal_end_interp_brace_and_close(current_literal)) {
+      if (literal_end_interp_brace_and_try_closing(current_literal)) {
         if (state->version == 18 || state->version == 19) {
           emit_token(state, tRCURLY, rb_str_new2("}"), p - 1, p);
           if (state->version < 24) {
