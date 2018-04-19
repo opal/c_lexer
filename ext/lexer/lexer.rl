@@ -10,6 +10,8 @@
 #include "lexer.h"
 
 #define INIT_LEXER_STATE(l, s) lexer_state *s; Data_Get_Struct(l, lexer_state, s);
+#define STATIC_ENV_DECLARED(name) \
+  state->static_env != Qnil && RTEST(rb_funcall(state->static_env, rb_intern("declared?"), 1, name))
 
 #include "cmdarg.h"
 #include "cond.h"
@@ -1599,8 +1601,7 @@ void Init_lexer()
     VALUE str = tok(state, ts, te);
     emit(tIDENTIFIER);
 
-    if (state->static_env != Qnil &&
-        RTEST(rb_funcall(state->static_env, rb_intern("declared?"), 1, str))) {
+    if (STATIC_ENV_DECLARED(str)) {
       fnext expr_endfn; fbreak;
     } else {
       fnext *arg_or_cmdarg(command_state); fbreak;
@@ -2094,8 +2095,7 @@ void Init_lexer()
                ident, ts, te - 2);
           fhold;
 
-          if (state->static_env != Qnil &&
-              RTEST(rb_funcall(state->static_env, rb_intern("declared?"), 1, ident))) {
+          if (STATIC_ENV_DECLARED(ident)) {
             fnext expr_end;
           } else {
             fnext *arg_or_cmdarg(command_state);
@@ -2119,9 +2119,7 @@ void Init_lexer()
         emit_token(state, tIDENTIFIER, ident_tok, ident_ts, ident_te);
         p = ident_te - 1;
 
-        if (state->static_env != Qnil &&
-              RTEST(rb_funcall(state->static_env, rb_intern("declared?"), 1, ident_tok)) &&
-              state->version < 25) {
+        if (STATIC_ENV_DECLARED(ident_tok) && state->version < 25) {
           fnext expr_endfn;
         } else {
           fnext expr_cmdarg;
@@ -2247,8 +2245,7 @@ void Init_lexer()
           VALUE str = tok(state, ts, te);
           emit(tIDENTIFIER);
 
-          if (state->static_env != Qnil &&
-              RTEST(rb_funcall(state->static_env, rb_intern("declared?"), 1, str))) {
+          if (STATIC_ENV_DECLARED(str)) {
             fnext expr_end;
           } else {
             fnext *arg_or_cmdarg(command_state);
