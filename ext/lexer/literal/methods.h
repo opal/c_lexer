@@ -329,7 +329,7 @@ static int literal_regexp_p(literal *lit)
 
 static int literal_heredoc_p(literal *lit)
 {
-  return lit->heredoc_e != Qnil;
+  return lit->heredoc_e ? 1 : 0;
 }
 
 static int literal_squiggly_heredoc_p(literal *lit)

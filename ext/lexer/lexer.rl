@@ -1305,13 +1305,12 @@ void Init_lexer()
     VALUE escaped_char = rb_str_substr(state->source, state->escape_s, 1);
 
     if (literal_munge_escape_p(current_literal, escaped_char)) {
-      if (current_literal->start_tok == tREGEXP_BEG && is_regexp_metachar(escaped_char)) {
+      if (literal_regexp_p(current_literal) && is_regexp_metachar(escaped_char)) {
         literal_extend_string(current_literal, tok(state, ts, te), ts, te);
       } else {
         literal_extend_string(current_literal, escaped_char, ts, te);
       }
     } else {
-      // if (current_literal->start_tok == tREGEXP_BEG) {
       if (literal_regexp_p(current_literal)) {
         VALUE token = tok(state, ts, te);
         rb_funcall(token, rb_intern("gsub!"), 2, escaped_newline, blank_string);
@@ -1341,7 +1340,7 @@ void Init_lexer()
                  range(state, str_s, str_s + 1), empty_array);
     }
 
-    if (current_literal->heredoc_e) {
+    if (literal_heredoc_p(current_literal)) {
       VALUE line = tok(state, state->herebody_s, ts);
       rb_funcall(line, rb_intern("gsub!"), 2, crs_to_eol, blank_string);
 
@@ -1521,13 +1520,15 @@ void Init_lexer()
         }
 
         emit(tREGEXP_OPT);
-        fnext expr_end; fbreak;
+        fnext expr_end;
+        fbreak;
       };
 
       any
       => {
         emit_token(state, tREGEXP_OPT, tok(state, ts, te - 1), ts, te - 1);
-        fhold; fgoto expr_end;
+        fhold;
+        fgoto expr_end;
       };
   *|;
 
@@ -1854,7 +1855,8 @@ void Init_lexer()
 
       w_space* '?' => { fhold; fgoto expr_beg; };
 
-      w_space+ %{ tm = p; } ( [%/] ( c_any - c_space_nl - '=' ) | '<<' ) => {
+      w_space+ %{ tm = p; }
+      ( [%/] ( c_any - c_space_nl - '=' ) | '<<' ) => {
         if (NUM2INT(rb_ary_entry(state->source_pts, tm)) == '/') {
           diagnostic(state, warning, ambiguous_literal, Qnil,
                      range(state, tm, tm + 1), empty_array);
