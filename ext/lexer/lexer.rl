@@ -2553,7 +2553,7 @@ void Init_lexer()
           fnext expr_endarg;
         }
 
-        fnext expr_endarg; fbreak;
+        fbreak;
       };
 
       e_rparen => {
