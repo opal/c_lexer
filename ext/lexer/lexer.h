@@ -299,7 +299,7 @@ VALUE unterminated_unicode;
 
 VALUE empty_array;
 VALUE blank_string;
-VALUE escaped_next_line;
+VALUE escaped_newline;
 VALUE utf8_encoding;
 VALUE cr_then_anything_to_eol;
 VALUE crs_to_eol;

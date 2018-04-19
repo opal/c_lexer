@@ -960,8 +960,8 @@ void Init_lexer()
   rb_gc_register_address(&empty_array);
   blank_string = rb_obj_freeze(rb_str_new2(""));
   rb_gc_register_address(&blank_string);
-  escaped_next_line = rb_obj_freeze(rb_str_new2("\\\n"));
-  rb_gc_register_address(&escaped_next_line);
+  escaped_newline = rb_obj_freeze(rb_str_new2("\\\n"));
+  rb_gc_register_address(&escaped_newline);
 
   if (rb_const_defined(rb_cObject, rb_intern("Encoding"))) {
     VALUE encoding = rb_const_get(rb_cObject, rb_intern("Encoding"));
@@ -1312,14 +1312,14 @@ void Init_lexer()
       // if (current_literal->start_tok == tREGEXP_BEG) {
       if (literal_regexp_p(current_literal)) {
         VALUE token = tok(state, ts, te);
-        rb_funcall(token, rb_intern("gsub!"), 2, escaped_next_line, blank_string);
+        rb_funcall(token, rb_intern("gsub!"), 2, escaped_newline, blank_string);
         literal_extend_string(current_literal, token, ts, te);
       } else if (literal_heredoc_p(current_literal) && newline_char_p(escaped_char)) {
         if (literal_squiggly_heredoc_p(current_literal)) {
           literal_extend_string(current_literal, tok(state, ts, te), ts, te);
         } else {
           VALUE token = tok(state, ts, te);
-          rb_funcall(token, rb_intern("gsub!"), 2, escaped_next_line, blank_string);
+          rb_funcall(token, rb_intern("gsub!"), 2, escaped_newline, blank_string);
           literal_extend_string(current_literal, token, ts, te);
         }
       } else if (state->escape == Qnil) {
