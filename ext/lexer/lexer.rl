@@ -11,6 +11,9 @@
 
 #define INIT_LEXER_STATE(l, s) lexer_state *s; Data_Get_Struct(l, lexer_state, s);
 
+#include "cmdarg.h"
+#include "cond.h"
+
 %%machine lex;
 %%write data;
 
@@ -328,102 +331,6 @@ static VALUE lexer_advance(VALUE self)
     VALUE token = rb_ary_new3(2, Qfalse, info);
     return token;
   }
-}
-
-static VALUE lexer_push_cmdarg_state(VALUE self, VALUE bit)
-{
-  INIT_LEXER_STATE(self, state);
-  int bitval = RTEST(bit) ? 1 : 0;
-  stack_state_push(&state->cmdarg, bitval);
-  return Qnil;
-}
-
-static VALUE lexer_pop_cmdarg_state(VALUE self)
-{
-  INIT_LEXER_STATE(self, state);
-  stack_state_pop(&state->cmdarg);
-  return Qnil;
-}
-
-static VALUE lexer_lexpop_cmdarg_state(VALUE self)
-{
-  INIT_LEXER_STATE(self, state);
-  stack_state_lexpop(&state->cmdarg);
-  return Qnil;
-}
-
-static VALUE lexer_clear_cmdarg_state(VALUE self)
-{
-  INIT_LEXER_STATE(self, state);
-  stack_state_clear(&state->cmdarg);
-  return Qnil;
-}
-
-static VALUE lexer_cmdarg_state_empty_p(VALUE self)
-{
-  INIT_LEXER_STATE(self, state);
-  return stack_state_empty_p(&state->cmdarg);
-}
-
-static VALUE lexer_cmdarg_state_value(VALUE self)
-{
-  INIT_LEXER_STATE(self, state);
-  return INT2NUM(stack_state_value(&state->cmdarg));
-}
-
-static VALUE lexer_set_cmdarg_state(VALUE self, VALUE value)
-{
-  INIT_LEXER_STATE(self, state);
-  stack_set_value(&state->cmdarg, NUM2INT(value));
-  return Qtrue;
-}
-
-static VALUE lexer_push_cond_state(VALUE self, VALUE bit)
-{
-  INIT_LEXER_STATE(self, state);
-  int bitval = RTEST(bit) ? 1 : 0;
-  stack_state_push(&state->cond, bitval);
-  return Qnil;
-}
-
-static VALUE lexer_pop_cond_state(VALUE self)
-{
-  INIT_LEXER_STATE(self, state);
-  stack_state_pop(&state->cond);
-  return Qnil;
-}
-
-static VALUE lexer_lexpop_cond_state(VALUE self)
-{
-  INIT_LEXER_STATE(self, state);
-  stack_state_lexpop(&state->cond);
-  return Qnil;
-}
-
-static VALUE lexer_clear_cond_state(VALUE self)
-{
-  INIT_LEXER_STATE(self, state);
-  stack_state_clear(&state->cond);
-  return Qnil;
-}
-
-static VALUE lexer_cond_state_empty_p(VALUE self)
-{
-  INIT_LEXER_STATE(self, state);
-  return stack_state_empty_p(&state->cond);
-}
-
-static VALUE lexer_cond_state_value(VALUE self)
-{
-  INIT_LEXER_STATE(self, state);
-  return INT2NUM(stack_state_value(&state->cond));
-}
-
-static VALUE lexer_set_cond_state(VALUE self, VALUE value)
-{
-  INIT_LEXER_STATE(self, state);
-  stack_set_value(&state->cond, NUM2INT(value));
-  return Qtrue;
 }
 
 static VALUE lexer_get_in_kwarg(VALUE self)
