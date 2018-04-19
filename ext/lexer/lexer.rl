@@ -960,6 +960,8 @@ void Init_lexer()
   rb_gc_register_address(&empty_array);
   blank_string = rb_obj_freeze(rb_str_new2(""));
   rb_gc_register_address(&blank_string);
+  newline = rb_obj_freeze(rb_str_new2("\n"));
+  rb_gc_register_address(&newline);
   escaped_newline = rb_obj_freeze(rb_str_new2("\\\n"));
   rb_gc_register_address(&escaped_newline);
 
@@ -2052,7 +2054,7 @@ void Init_lexer()
         VALUE delimiter = tok(state, rng_s, rng_e);
 
         if (state->version >= 24) {
-          if (NUM2INT(rb_funcall(delimiter, rb_intern("count"), 1, rb_str_new2("\n"))) > 0) {
+          if (NUM2INT(rb_funcall(delimiter, rb_intern("count"), 1, newline)) > 0) {
             if (str_end_with_p(delimiter, "\n")) {
               diagnostic(state, warning, heredoc_id_ends_with_nl, Qnil,
                    range(state, ts, ts + 1), empty_array);
