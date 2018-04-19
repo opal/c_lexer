@@ -3,8 +3,8 @@ require 'rake/testtask'
 require 'rake/extensiontask'
 
 Rake::TestTask.new do |t|
-  t.ruby_opts  = ["-rc_lexer"]
-  t.libs       = %w(lib/ vendor/parser/test/ vendor/parser/lib/)
+  t.ruby_opts  = ["-rpatch_helper"]
+  t.libs       = %w(lib/ test/ vendor/parser/test/ vendor/parser/lib/)
   t.test_files = %w(vendor/parser/test/test_lexer.rb vendor/parser/test/test_parser.rb)
   t.warning    = false
 end

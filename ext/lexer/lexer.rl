@@ -906,7 +906,7 @@ void Init_lexer()
   init_symbol(unterminated_unicode);
 
   VALUE m_Parser = rb_define_module("Parser");
-  VALUE c_Lexer  = rb_define_class_under(m_Parser, "Lexer", rb_cObject);
+  VALUE c_Lexer  = rb_define_class_under(m_Parser, "CLexer", rb_cObject);
 
   rb_define_alloc_func(c_Lexer, lexer_alloc);
 
