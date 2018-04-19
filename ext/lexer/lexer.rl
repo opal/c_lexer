@@ -15,6 +15,7 @@
 #include "cond.h"
 
 #include "literal/methods.h"
+#include "emit_tables.h"
 
 %%machine lex;
 %%write data;
@@ -1650,47 +1651,9 @@ void Init_lexer()
   *|;
 
   expr_fname := |*
-      'if'           => { emit(kIF);           fnext expr_endfn; fbreak; };
-      'unless'       => { emit(kUNLESS);       fnext expr_endfn; fbreak; };
-      'while'        => { emit(kWHILE);        fnext expr_endfn; fbreak; };
-      'until'        => { emit(kUNTIL);        fnext expr_endfn; fbreak; };
-      'rescue'       => { emit(kRESCUE);       fnext expr_endfn; fbreak; };
-      'yield'        => { emit(kYIELD);        fnext expr_endfn; fbreak; };
-      'super'        => { emit(kSUPER);        fnext expr_endfn; fbreak; };
-      'not'          => { emit(kNOT);          fnext expr_endfn; fbreak; };
-      'defined?'     => { emit(kDEFINED);      fnext expr_endfn; fbreak; };
-      'def'          => { emit(kDEF);          fnext expr_endfn; fbreak; };
-      'undef'        => { emit(kUNDEF);        fnext expr_endfn; fbreak; };
-      'alias'        => { emit(kALIAS);        fnext expr_endfn; fbreak; };
-      'else'         => { emit(kELSE);         fnext expr_endfn; fbreak; };
-      'case'         => { emit(kCASE);         fnext expr_endfn; fbreak; };
-      'ensure'       => { emit(kENSURE);       fnext expr_endfn; fbreak; };
-      'module'       => { emit(kMODULE);       fnext expr_endfn; fbreak; };
-      'elsif'        => { emit(kELSIF);        fnext expr_endfn; fbreak; };
-      'then'         => { emit(kTHEN);         fnext expr_endfn; fbreak; };
-      'for'          => { emit(kFOR);          fnext expr_endfn; fbreak; };
-      'in'           => { emit(kIN);           fnext expr_endfn; fbreak; };
-      'do'           => { emit(kDO);           fnext expr_endfn; fbreak; };
-      'when'         => { emit(kWHEN);         fnext expr_endfn; fbreak; };
-      'begin'        => { emit(kBEGIN);        fnext expr_endfn; fbreak; };
-      'class'        => { emit(kCLASS);        fnext expr_endfn; fbreak; };
-      'and'          => { emit(kAND);          fnext expr_endfn; fbreak; };
-      'or'           => { emit(kOR);           fnext expr_endfn; fbreak; };
-      'return'       => { emit(kRETURN);       fnext expr_endfn; fbreak; };
-      'break'        => { emit(kBREAK);        fnext expr_endfn; fbreak; };
-      'next'         => { emit(kNEXT);         fnext expr_endfn; fbreak; };
-      'end'          => { emit(kEND);          fnext expr_endfn; fbreak; };
-      'self'         => { emit(kSELF);         fnext expr_endfn; fbreak; };
-      'true'         => { emit(kTRUE);         fnext expr_endfn; fbreak; };
-      'false'        => { emit(kFALSE);        fnext expr_endfn; fbreak; };
-      'retry'        => { emit(kRETRY);        fnext expr_endfn; fbreak; };
-      'redo'         => { emit(kREDO);         fnext expr_endfn; fbreak; };
-      'nil'          => { emit(kNIL);          fnext expr_endfn; fbreak; };
-      'BEGIN'        => { emit(klBEGIN);       fnext expr_endfn; fbreak; };
-      'END'          => { emit(klEND);         fnext expr_endfn; fbreak; };
-      '__FILE__'     => { emit(k__FILE__);     fnext expr_endfn; fbreak; };
-      '__LINE__'     => { emit(k__LINE__);     fnext expr_endfn; fbreak; };
-      '__ENCODING__' => { emit(k__ENCODING__); fnext expr_endfn; fbreak; };
+      keyword
+      => { emit_table_KEYWORDS_BEGIN(state, tok(state, ts, te), ts, te);
+           fnext expr_endfn; fbreak; };
 
       constant        => { emit(tCONSTANT); fnext expr_endfn; fbreak; };
 
@@ -1698,39 +1661,11 @@ void Init_lexer()
 
       global_var => { p = ts - 1; fnext expr_end; fcall expr_variable; };
 
-      '[]'  => { emit(tAREF);      fnext expr_endfn; fbreak; };
-      '[]=' => { emit(tASET);      fnext expr_endfn; fbreak; };
-      '`'   => { emit(tBACK_REF2); fnext expr_endfn; fbreak; };
-      '-@'  => { emit(tUMINUS);    fnext expr_endfn; fbreak; };
-      '+@'  => { emit(tUPLUS);     fnext expr_endfn; fbreak; };
-      '~@'  => { emit(tTILDE);     fnext expr_endfn; fbreak; };
-      '!@'  => { emit(tBANG);      fnext expr_endfn; fbreak; };
-      '&'   => { emit(tAMPER2);    fnext expr_endfn; fbreak; };
-      '|'   => { emit(tPIPE);      fnext expr_endfn; fbreak; };
-      '&&'  => { emit(tANDOP);     fnext expr_endfn; fbreak; };
-      '||'  => { emit(tOROP);      fnext expr_endfn; fbreak; };
-      '^'   => { emit(tCARET);     fnext expr_endfn; fbreak; };
-      '+'   => { emit(tPLUS);      fnext expr_endfn; fbreak; };
-      '-'   => { emit(tMINUS);     fnext expr_endfn; fbreak; };
-      '*'   => { emit(tSTAR2);     fnext expr_endfn; fbreak; };
-      '/'   => { emit(tDIVIDE);    fnext expr_endfn; fbreak; };
-      '**'  => { emit(tPOW);       fnext expr_endfn; fbreak; };
-      '~'   => { emit(tTILDE);     fnext expr_endfn; fbreak; };
-      '<<'  => { emit(tLSHFT);     fnext expr_endfn; fbreak; };
-      '>>'  => { emit(tRSHFT);     fnext expr_endfn; fbreak; };
-      '%'   => { emit(tPERCENT);   fnext expr_endfn; fbreak; };
-      '=~'  => { emit(tMATCH);     fnext expr_endfn; fbreak; };
-      '!~'  => { emit(tNMATCH);    fnext expr_endfn; fbreak; };
-      '=='  => { emit(tEQ);        fnext expr_endfn; fbreak; };
-      '!='  => { emit(tNEQ);       fnext expr_endfn; fbreak; };
-      '!'   => { emit(tBANG);      fnext expr_endfn; fbreak; };
-      '===' => { emit(tEQQ);       fnext expr_endfn; fbreak; };
-      '<'   => { emit(tLT);        fnext expr_endfn; fbreak; };
-      '<='  => { emit(tLEQ);       fnext expr_endfn; fbreak; };
-      '>'   => { emit(tGT);        fnext expr_endfn; fbreak; };
-      '>='  => { emit(tGEQ);       fnext expr_endfn; fbreak; };
-      '<=>' => { emit(tCMP);       fnext expr_endfn; fbreak; };
-      '=>'  => { emit(tASSOC);     fnext expr_endfn; fbreak; };
+      operator_fname      |
+      operator_arithmetic |
+      operator_rest
+      => { emit_table_PUNCTUATION(state, tok(state, ts, te), ts, te);
+           fnext expr_endfn; fbreak; };
 
       '::' => { fhold; fhold; fgoto expr_end; };
 
@@ -1780,39 +1715,11 @@ void Init_lexer()
       => { emit_token(state, tFID, tok(state, ts, tm), ts, tm);
            fnext *arg_or_cmdarg(command_state); p = tm - 1; fbreak; };
 
-      '[]'  => { emit(tAREF);      fnext expr_arg; fbreak; };
-      '[]=' => { emit(tASET);      fnext expr_arg; fbreak; };
-      '`'   => { emit(tBACK_REF2); fnext expr_arg; fbreak; };
-      '-@'  => { emit(tUMINUS);    fnext expr_arg; fbreak; };
-      '+@'  => { emit(tUPLUS);     fnext expr_arg; fbreak; };
-      '~@'  => { emit(tTILDE);     fnext expr_arg; fbreak; };
-      '!@'  => { emit(tBANG);      fnext expr_arg; fbreak; };
-      '&'   => { emit(tAMPER2);    fnext expr_arg; fbreak; };
-      '|'   => { emit(tPIPE);      fnext expr_arg; fbreak; };
-      '&&'  => { emit(tANDOP);     fnext expr_arg; fbreak; };
-      '||'  => { emit(tOROP);      fnext expr_arg; fbreak; };
-      '^'   => { emit(tCARET);     fnext expr_arg; fbreak; };
-      '+'   => { emit(tPLUS);      fnext expr_arg; fbreak; };
-      '-'   => { emit(tMINUS);     fnext expr_arg; fbreak; };
-      '*'   => { emit(tSTAR2);     fnext expr_arg; fbreak; };
-      '/'   => { emit(tDIVIDE);    fnext expr_arg; fbreak; };
-      '**'  => { emit(tPOW);       fnext expr_arg; fbreak; };
-      '~'   => { emit(tTILDE);     fnext expr_arg; fbreak; };
-      '<<'  => { emit(tLSHFT);     fnext expr_arg; fbreak; };
-      '>>'  => { emit(tRSHFT);     fnext expr_arg; fbreak; };
-      '%'   => { emit(tPERCENT);   fnext expr_arg; fbreak; };
-      '=~'  => { emit(tMATCH);     fnext expr_arg; fbreak; };
-      '!~'  => { emit(tNMATCH);    fnext expr_arg; fbreak; };
-      '=='  => { emit(tEQ);        fnext expr_arg; fbreak; };
-      '!='  => { emit(tNEQ);       fnext expr_arg; fbreak; };
-      '!'   => { emit(tBANG);      fnext expr_arg; fbreak; };
-      '===' => { emit(tEQQ);       fnext expr_arg; fbreak; };
-      '<'   => { emit(tLT);        fnext expr_arg; fbreak; };
-      '<='  => { emit(tLEQ);       fnext expr_arg; fbreak; };
-      '>'   => { emit(tGT);        fnext expr_arg; fbreak; };
-      '>='  => { emit(tGEQ);       fnext expr_arg; fbreak; };
-      '<=>' => { emit(tCMP);       fnext expr_arg; fbreak; };
-      '=>'  => { emit(tASSOC);     fnext expr_arg; fbreak; };
+      operator_fname      |
+      operator_arithmetic |
+      operator_rest
+      => { emit_table_PUNCTUATION(state, tok(state, ts, te), ts, te);
+           fnext expr_arg; fbreak; };
 
       w_any;
 
@@ -1959,11 +1866,9 @@ void Init_lexer()
   *|;
 
   expr_mid := |*
-      'if'     => { emit(kIF_MOD);     fnext expr_beg; fbreak; };
-      'unless' => { emit(kUNLESS_MOD); fnext expr_beg; fbreak; };
-      'while'  => { emit(kWHILE_MOD);  fnext expr_beg; fbreak; };
-      'until'  => { emit(kUNTIL_MOD);  fnext expr_beg; fbreak; };
-      'rescue' => { emit(kRESCUE_MOD); fnext expr_beg; fbreak; };
+      keyword_modifier
+      => { emit_table_KEYWORDS(state, tok(state, ts, te), ts, te);
+           fnext expr_beg; fbreak; };
 
       bareword => { p = ts - 1; fgoto expr_beg; };
 
@@ -2164,11 +2069,9 @@ void Init_lexer()
         fbreak;
       };
 
-      '-'  => { emit(tUMINUS); fbreak; };
-      '+'  => { emit(tUPLUS); fbreak; };
-      '::' => { emit(tCOLON3); fbreak; };
-      '**' => { emit(tDSTAR); fbreak; };
-      '&'  => { emit(tAMPER); fbreak; };
+      punctuation_begin
+      => { emit_table_PUNCTUATION_BEGIN(state, tok(state, ts, te), ts, te);
+           fbreak; };
 
       'rescue' %{ tm = p; } '=>'? => {
         emit_token(state, kRESCUE, tok(state, ts, tm), ts, tm);
@@ -2176,11 +2079,9 @@ void Init_lexer()
         fnext expr_mid; fbreak;
       };
 
-      'if'     => { emit(kIF);     fnext expr_value; fbreak; };
-      'unless' => { emit(kUNLESS); fnext expr_value; fbreak; };
-      'while'  => { emit(kWHILE);  fnext expr_value; fbreak; };
-      'until'  => { emit(kUNTIL);  fnext expr_value; fbreak; };
-      'rescue' => { emit(kRESCUE); fnext expr_value; fbreak; };
+      keyword_modifier
+      => { emit_table_KEYWORDS_BEGIN(state, tok(state, ts, te), ts, te);
+           fnext expr_value; fbreak; };
 
       label ( any - ':' )
       => {
@@ -2308,47 +2209,33 @@ void Init_lexer()
         fnext expr_value; fbreak;
       };
 
-      'def'   => { emit(kDEF);   fnext expr_fname; fbreak; };
-      'undef' => { emit(kUNDEF); fnext expr_fname; fbreak; };
-      'alias' => { emit(kALIAS); fnext expr_fname; fbreak; };
+      keyword_with_fname
+      => { emit_table_KEYWORDS(state, tok(state, ts, te), ts, te);
+           fnext expr_fname; fbreak; };
 
       'class' w_any* '<<'
       => { emit_token(state, kCLASS, rb_str_new2("class"), ts, ts + 5);
            emit_token(state, tLSHFT, rb_str_new2("<<"),    te - 2, te);
            fnext expr_value; fbreak; };
 
-      'if'     => { emit(kIF_MOD);     fnext expr_beg; fbreak; };
-      'unless' => { emit(kUNLESS_MOD); fnext expr_beg; fbreak; };
-      'while'  => { emit(kWHILE_MOD);  fnext expr_beg; fbreak; };
-      'until'  => { emit(kUNTIL_MOD);  fnext expr_beg; fbreak; };
-      'rescue' => { emit(kRESCUE_MOD); fnext expr_beg; fbreak; };
+      keyword_modifier
+      => { emit_table_KEYWORDS(state, tok(state, ts, te), ts, te);
+           fnext expr_beg; fbreak; };
 
-      'else'   => { emit(kELSE);   fnext expr_value; fbreak; };
-      'case'   => { emit(kCASE);   fnext expr_value; fbreak; };
-      'ensure' => { emit(kENSURE); fnext expr_value; fbreak; };
-      'module' => { emit(kMODULE); fnext expr_value; fbreak; };
-      'elsif'  => { emit(kELSIF);  fnext expr_value; fbreak; };
-      'then'   => { emit(kTHEN);   fnext expr_value; fbreak; };
-      'for'    => { emit(kFOR);    fnext expr_value; fbreak; };
-      'in'     => { emit(kIN);     fnext expr_value; fbreak; };
-      'do'     => { emit(kDO);     fnext expr_value; fbreak; };
-      'when'   => { emit(kWHEN);   fnext expr_value; fbreak; };
-      'begin'  => { emit(kBEGIN);  fnext expr_value; fbreak; };
-      'class'  => { emit(kCLASS);  fnext expr_value; fbreak; };
-      'and'    => { emit(kAND);    fnext expr_value; fbreak; };
-      'or'     => { emit(kOR);     fnext expr_value; fbreak; };
+      keyword_with_value
+      => { emit_table_KEYWORDS(state, tok(state, ts, te), ts, te);
+           fnext expr_value; fbreak; };
 
-      'return' => { emit(kRETURN); fnext expr_mid; fbreak; };
-      'break'  => { emit(kBREAK);  fnext expr_mid; fbreak; };
-      'next'   => { emit(kNEXT);   fnext expr_mid; fbreak; };
+      keyword_with_mid
+      => { emit_table_KEYWORDS(state, tok(state, ts, te), ts, te);
+           fnext expr_mid; fbreak; };
 
-      'yield'    => { emit(kYIELD);   fnext expr_arg; fbreak; };
-      'super'    => { emit(kSUPER);   fnext expr_arg; fbreak; };
-      'defined?' => { emit(kDEFINED); fnext expr_arg; fbreak; };
+      keyword_with_arg
+      => {
+        VALUE keyword = tok(state, ts, te);
+        emit_table_KEYWORDS(state, keyword, ts, te);
 
-      'not'      => {
-        emit(kNOT);
-        if (state->version == 18) {
+        if (state->version == 18 && strcmp(RSTRING_PTR(keyword), "not") == 0) {
           fnext expr_beg; fbreak;
         } else {
           fnext expr_arg; fbreak;
@@ -2372,17 +2259,9 @@ void Init_lexer()
         fbreak;
       };
 
-      'end'      => { emit(kEND);      fbreak; };
-      'self'     => { emit(kSELF);     fbreak; };
-      'true'     => { emit(kTRUE);     fbreak; };
-      'false'    => { emit(kFALSE);    fbreak; };
-      'retry'    => { emit(kRETRY);    fbreak; };
-      'redo'     => { emit(kREDO);     fbreak; };
-      'nil'      => { emit(kNIL);      fbreak; };
-      'BEGIN'    => { emit(klBEGIN);   fbreak; };
-      'END'      => { emit(klEND);     fbreak; };
-      '__FILE__' => { emit(k__FILE__); fbreak; };
-      '__LINE__' => { emit(k__LINE__); fbreak; };
+      keyword_with_end
+      => { emit_table_KEYWORDS(state, tok(state, ts, te), ts, te);
+           fbreak; };
 
       ( '0' [Xx] %{ num_base = 16; num_digits_s = p; } int_hex
       | '0' [Dd] %{ num_base = 10; num_digits_s = p; } int_dec
@@ -2490,9 +2369,9 @@ void Init_lexer()
       global_var | class_var_v | instance_var_v
       => { p = ts - 1; fcall expr_variable; };
 
-      '.'  => { emit(tDOT);    fnext expr_dot; fbreak; };
-      '&.' => { emit(tANDDOT); fnext expr_dot; fbreak; };
-      '::' => { emit(tCOLON2); fnext expr_dot; fbreak; };
+      '.' | '&.' | '::'
+      => { emit_table_PUNCTUATION(state, tok(state, ts, te), ts, te);
+           fnext expr_dot; fbreak; };
 
       call_or_var => local_ident;
 
@@ -2506,35 +2385,15 @@ void Init_lexer()
         fnext expr_arg; fbreak;
       };
 
-      '&'   => { emit(tAMPER2);  fnext expr_value; fbreak; };
-      '&&'  => { emit(tANDOP);   fnext expr_value; fbreak; };
-      '||'  => { emit(tOROP);    fnext expr_value; fbreak; };
-      '^'   => { emit(tCARET);   fnext expr_value; fbreak; };
-      '+'   => { emit(tPLUS);    fnext expr_value; fbreak; };
-      '-'   => { emit(tMINUS);   fnext expr_value; fbreak; };
-      '*'   => { emit(tSTAR2);   fnext expr_value; fbreak; };
-      '/'   => { emit(tDIVIDE);  fnext expr_value; fbreak; };
-      '**'  => { emit(tPOW);     fnext expr_value; fbreak; };
-      '<<'  => { emit(tLSHFT);   fnext expr_value; fbreak; };
-      '>>'  => { emit(tRSHFT);   fnext expr_value; fbreak; };
-      '%'   => { emit(tPERCENT); fnext expr_value; fbreak; };
+      ( operator_arithmetic | operator_rest ) - ( '|' | '~' | '!' )
+      => {
+        emit_table_PUNCTUATION(state, tok(state, ts, te), ts, te);
+        fnext expr_value; fbreak;
+      };
 
-      '=~'  => { emit(tMATCH);   fnext expr_value; fbreak; };
-      '!~'  => { emit(tNMATCH);  fnext expr_value; fbreak; };
-      '=='  => { emit(tEQ);      fnext expr_value; fbreak; };
-      '!='  => { emit(tNEQ);     fnext expr_value; fbreak; };
-      '===' => { emit(tEQQ);     fnext expr_value; fbreak; };
-      '<'   => { emit(tLT);      fnext expr_value; fbreak; };
-      '<='  => { emit(tLEQ);     fnext expr_value; fbreak; };
-      '>'   => { emit(tGT);      fnext expr_value; fbreak; };
-      '>='  => { emit(tGEQ);     fnext expr_value; fbreak; };
-      '<=>' => { emit(tCMP);     fnext expr_value; fbreak; };
-      '=>'  => { emit(tASSOC);   fnext expr_value; fbreak; };
-
-      e_lparen => { emit(tLPAREN2); fnext expr_beg; fbreak; };
-      '|'      => { emit(tPIPE);    fnext expr_beg; fbreak; };
-      '~'      => { emit(tTILDE);   fnext expr_beg; fbreak; };
-      '!'      => { emit(tBANG);    fnext expr_beg; fbreak; };
+      ( e_lparen | '|' | '~' | '!' )
+      => { emit_table_PUNCTUATION(state, tok(state, ts, te), ts, te);
+           fnext expr_beg; fbreak; };
 
       e_rbrace => {
         emit(tRCURLY);
@@ -2598,11 +2457,9 @@ void Init_lexer()
 
       e_lbrack => { emit(tLBRACK2); fnext expr_beg; fbreak; };
 
-      ','   => { emit(tCOMMA); fnext expr_beg; fbreak; };
-      '='   => { emit(tEQL);   fnext expr_beg; fbreak; };
-      ':'   => { emit(tCOLON); fnext expr_beg; fbreak; };
-      '..'  => { emit(tDOT2);  fnext expr_beg; fbreak; };
-      '...' => { emit(tDOT3);  fnext expr_beg; fbreak; };
+      punctuation_end
+      => { emit_table_PUNCTUATION(state, tok(state, ts, te), ts, te);
+           fnext expr_beg; fbreak; };
 
       w_space_comment;
 
