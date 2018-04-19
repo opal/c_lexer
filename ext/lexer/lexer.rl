@@ -242,13 +242,7 @@ static VALUE lexer_pop_cond(VALUE self)
 static VALUE lexer_push_cmdarg_state(VALUE self, VALUE bit)
 {
   INIT_LEXER_STATE(self, state);
-
-  int bitval;
-  if (RTEST(bit))
-    bitval = 1;
-  else
-    bitval = 0;
-
+  int bitval = RTEST(bit) ? 1 : 0;
   stack_state_push(&state->cmdarg, bitval);
   return Qnil;
 }
@@ -296,13 +290,7 @@ static VALUE lexer_set_cmdarg_state(VALUE self, VALUE value)
 static VALUE lexer_push_cond_state(VALUE self, VALUE bit)
 {
   INIT_LEXER_STATE(self, state);
-
-  int bitval;
-  if (RTEST(bit))
-    bitval = 1;
-  else
-    bitval = 0;
-
+  int bitval = RTEST(bit) ? 1 : 0;
   stack_state_push(&state->cond, bitval);
   return Qnil;
 }
