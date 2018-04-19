@@ -183,6 +183,107 @@ static VALUE lexer_set_source_buffer(VALUE self, VALUE buffer)
   return self;
 }
 
+static VALUE lexer_get_state(VALUE self)
+{
+  INIT_LEXER_STATE(self, state);
+
+  switch (state->cs) {
+  case lex_en_line_begin:    return ID2SYM(rb_intern("line_begin"));
+  case lex_en_expr_dot:      return ID2SYM(rb_intern("expr_dot"));
+  case lex_en_expr_fname:    return ID2SYM(rb_intern("expr_fname"));
+  case lex_en_expr_value:    return ID2SYM(rb_intern("expr_value"));
+  case lex_en_expr_beg:      return ID2SYM(rb_intern("expr_beg"));
+  case lex_en_expr_mid:      return ID2SYM(rb_intern("expr_mid"));
+  case lex_en_expr_arg:      return ID2SYM(rb_intern("expr_arg"));
+  case lex_en_expr_cmdarg:   return ID2SYM(rb_intern("expr_cmdarg"));
+  case lex_en_expr_end:      return ID2SYM(rb_intern("expr_end"));
+  case lex_en_expr_endarg:   return ID2SYM(rb_intern("expr_endarg"));
+  case lex_en_expr_endfn:    return ID2SYM(rb_intern("expr_endfn"));
+  case lex_en_expr_labelarg: return ID2SYM(rb_intern("expr_labelarg"));
+
+  case lex_en_interp_string: return ID2SYM(rb_intern("interp_string"));
+  case lex_en_interp_words:  return ID2SYM(rb_intern("interp_words"));
+  case lex_en_plain_string:  return ID2SYM(rb_intern("plain_string"));
+  case lex_en_plain_words:   return ID2SYM(rb_intern("plain_words"));
+  default:
+    rb_raise(rb_eRuntimeError, "Lexer state variable is borked");
+  }
+}
+
+static VALUE lexer_set_state(VALUE self, VALUE state_sym)
+{
+  INIT_LEXER_STATE(self, state);
+  const char *state_name = rb_id2name(SYM2ID(state_sym));
+
+  if (strcmp(state_name, "line_begin") == 0)
+    state->cs = lex_en_line_begin;
+  else if (strcmp(state_name, "expr_dot") == 0)
+    state->cs = lex_en_expr_dot;
+  else if (strcmp(state_name, "expr_fname") == 0)
+    state->cs = lex_en_expr_fname;
+  else if (strcmp(state_name, "expr_value") == 0)
+    state->cs = lex_en_expr_value;
+  else if (strcmp(state_name, "expr_beg") == 0)
+    state->cs = lex_en_expr_beg;
+  else if (strcmp(state_name, "expr_mid") == 0)
+    state->cs = lex_en_expr_mid;
+  else if (strcmp(state_name, "expr_arg") == 0)
+    state->cs = lex_en_expr_arg;
+  else if (strcmp(state_name, "expr_cmdarg") == 0)
+    state->cs = lex_en_expr_cmdarg;
+  else if (strcmp(state_name, "expr_end") == 0)
+    state->cs = lex_en_expr_end;
+  else if (strcmp(state_name, "expr_endarg") == 0)
+    state->cs = lex_en_expr_endarg;
+  else if (strcmp(state_name, "expr_endfn") == 0)
+    state->cs = lex_en_expr_endfn;
+  else if (strcmp(state_name, "expr_labelarg") == 0)
+    state->cs = lex_en_expr_labelarg;
+
+  else if (strcmp(state_name, "interp_string") == 0)
+    state->cs = lex_en_interp_string;
+  else if (strcmp(state_name, "interp_words") == 0)
+    state->cs = lex_en_interp_words;
+  else if (strcmp(state_name, "plain_string") == 0)
+    state->cs = lex_en_plain_string;
+  else if (strcmp(state_name, "plain_words") == 0)
+    state->cs = lex_en_plain_words;
+  else
+    rb_raise(rb_eArgError, "Invalid state: %s", state_name);
+
+  return state_sym;
+}
+
+static VALUE lexer_push_cmdarg(VALUE self)
+{
+  INIT_LEXER_STATE(self, state);
+  ss_stack_push(&state->cmdarg_stack, state->cmdarg);
+  state->cmdarg = 0;
+  return Qnil;
+}
+
+static VALUE lexer_pop_cmdarg(VALUE self)
+{
+  INIT_LEXER_STATE(self, state);
+  state->cmdarg = ss_stack_pop(&state->cmdarg_stack);
+  return Qnil;
+}
+
+static VALUE lexer_push_cond(VALUE self)
+{
+  INIT_LEXER_STATE(self, state);
+  ss_stack_push(&state->cond_stack, state->cond);
+  state->cond = 0;
+  return Qnil;
+}
+
+static VALUE lexer_pop_cond(VALUE self)
+{
+  INIT_LEXER_STATE(self, state);
+  state->cond = ss_stack_pop(&state->cond_stack);
+  return Qnil;
+}
+
 static VALUE lexer_advance(VALUE self)
 {
   int cs, act = 0, top, command_state;
@@ -227,36 +328,6 @@ static VALUE lexer_advance(VALUE self)
     VALUE token = rb_ary_new3(2, Qfalse, info);
     return token;
   }
-}
-
-static VALUE lexer_push_cmdarg(VALUE self)
-{
-  INIT_LEXER_STATE(self, state);
-  ss_stack_push(&state->cmdarg_stack, state->cmdarg);
-  state->cmdarg = 0;
-  return Qnil;
-}
-
-static VALUE lexer_pop_cmdarg(VALUE self)
-{
-  INIT_LEXER_STATE(self, state);
-  state->cmdarg = ss_stack_pop(&state->cmdarg_stack);
-  return Qnil;
-}
-
-static VALUE lexer_push_cond(VALUE self)
-{
-  INIT_LEXER_STATE(self, state);
-  ss_stack_push(&state->cond_stack, state->cond);
-  state->cond = 0;
-  return Qnil;
-}
-
-static VALUE lexer_pop_cond(VALUE self)
-{
-  INIT_LEXER_STATE(self, state);
-  state->cond = ss_stack_pop(&state->cond_stack);
-  return Qnil;
 }
 
 static VALUE lexer_push_cmdarg_state(VALUE self, VALUE bit)
@@ -353,77 +424,6 @@ static VALUE lexer_set_cond_state(VALUE self, VALUE value)
   INIT_LEXER_STATE(self, state);
   stack_set_value(&state->cond, NUM2INT(value));
   return Qtrue;
-}
-
-static VALUE lexer_get_state(VALUE self)
-{
-  INIT_LEXER_STATE(self, state);
-
-  switch (state->cs) {
-  case lex_en_line_begin:    return ID2SYM(rb_intern("line_begin"));
-  case lex_en_expr_dot:      return ID2SYM(rb_intern("expr_dot"));
-  case lex_en_expr_fname:    return ID2SYM(rb_intern("expr_fname"));
-  case lex_en_expr_value:    return ID2SYM(rb_intern("expr_value"));
-  case lex_en_expr_beg:      return ID2SYM(rb_intern("expr_beg"));
-  case lex_en_expr_mid:      return ID2SYM(rb_intern("expr_mid"));
-  case lex_en_expr_arg:      return ID2SYM(rb_intern("expr_arg"));
-  case lex_en_expr_cmdarg:   return ID2SYM(rb_intern("expr_cmdarg"));
-  case lex_en_expr_end:      return ID2SYM(rb_intern("expr_end"));
-  case lex_en_expr_endarg:   return ID2SYM(rb_intern("expr_endarg"));
-  case lex_en_expr_endfn:    return ID2SYM(rb_intern("expr_endfn"));
-  case lex_en_expr_labelarg: return ID2SYM(rb_intern("expr_labelarg"));
-
-  case lex_en_interp_string: return ID2SYM(rb_intern("interp_string"));
-  case lex_en_interp_words:  return ID2SYM(rb_intern("interp_words"));
-  case lex_en_plain_string:  return ID2SYM(rb_intern("plain_string"));
-  case lex_en_plain_words:   return ID2SYM(rb_intern("plain_words"));
-  default:
-    rb_raise(rb_eRuntimeError, "Lexer state variable is borked");
-  }
-}
-
-static VALUE lexer_set_state(VALUE self, VALUE state_sym)
-{
-  INIT_LEXER_STATE(self, state);
-  const char *state_name = rb_id2name(SYM2ID(state_sym));
-
-  if (strcmp(state_name, "line_begin") == 0)
-    state->cs = lex_en_line_begin;
-  else if (strcmp(state_name, "expr_dot") == 0)
-    state->cs = lex_en_expr_dot;
-  else if (strcmp(state_name, "expr_fname") == 0)
-    state->cs = lex_en_expr_fname;
-  else if (strcmp(state_name, "expr_value") == 0)
-    state->cs = lex_en_expr_value;
-  else if (strcmp(state_name, "expr_beg") == 0)
-    state->cs = lex_en_expr_beg;
-  else if (strcmp(state_name, "expr_mid") == 0)
-    state->cs = lex_en_expr_mid;
-  else if (strcmp(state_name, "expr_arg") == 0)
-    state->cs = lex_en_expr_arg;
-  else if (strcmp(state_name, "expr_cmdarg") == 0)
-    state->cs = lex_en_expr_cmdarg;
-  else if (strcmp(state_name, "expr_end") == 0)
-    state->cs = lex_en_expr_end;
-  else if (strcmp(state_name, "expr_endarg") == 0)
-    state->cs = lex_en_expr_endarg;
-  else if (strcmp(state_name, "expr_endfn") == 0)
-    state->cs = lex_en_expr_endfn;
-  else if (strcmp(state_name, "expr_labelarg") == 0)
-    state->cs = lex_en_expr_labelarg;
-
-  else if (strcmp(state_name, "interp_string") == 0)
-    state->cs = lex_en_interp_string;
-  else if (strcmp(state_name, "interp_words") == 0)
-    state->cs = lex_en_interp_words;
-  else if (strcmp(state_name, "plain_string") == 0)
-    state->cs = lex_en_plain_string;
-  else if (strcmp(state_name, "plain_words") == 0)
-    state->cs = lex_en_plain_words;
-  else
-    rb_raise(rb_eArgError, "Invalid state: %s", state_name);
-
-  return state_sym;
 }
 
 static VALUE lexer_get_in_kwarg(VALUE self)
