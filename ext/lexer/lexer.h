@@ -6,7 +6,7 @@ typedef struct lexer_state lexer_state;
 define_stack_type(lit_stack, literal, {0});
 
 struct lexer_state {
-  uint cs;               /* DFA state */
+  int cs;               /* DFA state */
   long p;                /* stream position */
   long pe;               /* end-of-stream position */
 
@@ -49,7 +49,7 @@ struct lexer_state {
 
   VALUE escape;
 
-  uint cs_before_block_comment;
+  int cs_before_block_comment;
 };
 
 static void lexer_mark(void*);
