@@ -1,6 +1,7 @@
 # CLexer
 
 [![Build Status](https://travis-ci.org/opal/c_lexer.svg?branch=master)](https://travis-ci.org/opal/c_lexer)
+[![Build status](https://ci.appveyor.com/api/projects/status/lqw4pid44jvfbnl3/branch/master?svg=true)](https://ci.appveyor.com/project/iliabylich/c-lexer/branch/master)
 
 A C port of the whitequark/parser's lexer.
 
