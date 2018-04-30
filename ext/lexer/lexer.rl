@@ -2385,7 +2385,7 @@ void Init_lexer()
       ( operator_arithmetic | operator_rest ) - ( '|' | '~' | '!' )
       => {
         emit_table_PUNCTUATION(state, tok(state, ts, te), ts, te);
-        fnext expr_value; fbreak;
+        fgoto expr_value;
       };
 
       ( e_lparen | '|' | '~' | '!' )
