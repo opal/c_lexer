@@ -2382,10 +2382,15 @@ void Init_lexer()
         fnext expr_arg; fbreak;
       };
 
-      ( operator_arithmetic | operator_rest ) - ( '|' | '~' | '!' )
+      '*' => {
+        emit(tSTAR2);
+        fgoto expr_value;
+      };
+
+      ( operator_arithmetic | operator_rest ) - ( '|' | '~' | '!' | '*' )
       => {
         emit_table_PUNCTUATION(state, tok(state, ts, te), ts, te);
-        fgoto expr_value;
+        fnext expr_value; fbreak;
       };
 
       ( e_lparen | '|' | '~' | '!' )
