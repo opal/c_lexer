@@ -15,6 +15,7 @@ install:
 
   - ruby -v
   - gem -v
+  - gem install bundler
   - bundle -v
 
   - bundle install --retry 3
