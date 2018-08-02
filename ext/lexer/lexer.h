@@ -2,7 +2,7 @@
 #define LEXER_H
 
 typedef struct lexer_state lexer_state;
-#include "literal.h"
+#include "literal/literal.h"
 define_stack_type(lit_stack, literal, {0});
 
 struct lexer_state {

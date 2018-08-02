@@ -5,16 +5,16 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include "stack.h"
-#include "stack_state.h"
+#include "stack_state/stack.h"
+#include "stack_state/stack_state.h"
 #include "lexer.h"
 
 #define INIT_LEXER_STATE(l, s) lexer_state *s; Data_Get_Struct(l, lexer_state, s);
 #define STATIC_ENV_DECLARED(name) \
   state->static_env != Qnil && RTEST(rb_funcall(state->static_env, rb_intern("declared?"), 1, name))
 
-#include "cmdarg.h"
-#include "cond.h"
+#include "stack_state/cmdarg.h"
+#include "stack_state/cond.h"
 
 #include "literal/methods.h"
 #include "emit_tables.h"
