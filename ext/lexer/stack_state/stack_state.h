@@ -32,9 +32,9 @@ static inline void stack_state_clear(stack_state *ss)
   *ss = 0;
 }
 
-static inline VALUE stack_state_empty_p(stack_state *ss)
+static inline int stack_state_empty_p(stack_state *ss)
 {
-  return *ss == 0 ? Qtrue : Qfalse;
+  return *ss == 0;
 }
 
 static inline int stack_state_value(stack_state *ss)

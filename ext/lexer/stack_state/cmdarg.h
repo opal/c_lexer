@@ -30,7 +30,7 @@ static VALUE lexer_clear_cmdarg_state(VALUE self)
 static VALUE lexer_cmdarg_state_empty_p(VALUE self)
 {
   INIT_LEXER_STATE(self, state);
-  return stack_state_empty_p(&state->cmdarg);
+  return stack_state_empty_p(&state->cmdarg) ? Qtrue : Qfalse;
 }
 
 static VALUE lexer_cmdarg_state_value(VALUE self)

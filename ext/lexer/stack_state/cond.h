@@ -30,7 +30,7 @@ static VALUE lexer_clear_cond_state(VALUE self)
 static VALUE lexer_cond_state_empty_p(VALUE self)
 {
   INIT_LEXER_STATE(self, state);
-  return stack_state_empty_p(&state->cond);
+  return stack_state_empty_p(&state->cond) ? Qtrue : Qfalse;
 }
 
 static VALUE lexer_cond_state_value(VALUE self)
