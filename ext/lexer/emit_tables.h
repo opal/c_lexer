@@ -1,7 +1,7 @@
-#define try_mapping(str, token) if (strcmp(value_str, str) == 0) { emit_token(state, token, value, start, end); return; }
+#define try_mapping(str, token) if (strcmp(value_str, str) == 0) { emit_token(lexer, token, value, start, end); return; }
 #define invalid_mapping rb_raise(rb_eArgError, "Invalid punctuation token: %s", value_str);
 
-static void emit_table_PUNCTUATION(lexer_state *state, VALUE value, long start, long end)
+static void emit_table_PUNCTUATION(Lexer *lexer, VALUE value, long start, long end)
 {
   const char *value_str = RSTRING_PTR(value);
 
@@ -59,7 +59,7 @@ static void emit_table_PUNCTUATION(lexer_state *state, VALUE value, long start, 
   invalid_mapping;
 }
 
-static void emit_table_PUNCTUATION_BEGIN(lexer_state *state, VALUE value, long start, long end)
+static void emit_table_PUNCTUATION_BEGIN(Lexer *lexer, VALUE value, long start, long end)
 {
   const char *value_str = RSTRING_PTR(value);
 
@@ -76,7 +76,7 @@ static void emit_table_PUNCTUATION_BEGIN(lexer_state *state, VALUE value, long s
   invalid_mapping;
 }
 
-static void emit_table_KEYWORDS(lexer_state *state, VALUE value, long start, long end)
+static void emit_table_KEYWORDS(Lexer *lexer, VALUE value, long start, long end)
 {
   const char *value_str = RSTRING_PTR(value);
 
@@ -126,7 +126,7 @@ static void emit_table_KEYWORDS(lexer_state *state, VALUE value, long start, lon
   invalid_mapping;
 }
 
-static void emit_table_KEYWORDS_BEGIN(lexer_state *state, VALUE value, long start, long end)
+static void emit_table_KEYWORDS_BEGIN(Lexer *lexer, VALUE value, long start, long end)
 {
   const char *value_str = RSTRING_PTR(value);
 

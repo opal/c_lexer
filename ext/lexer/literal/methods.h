@@ -1,4 +1,4 @@
-static void literal_init(literal *self, lexer_state *lexer, VALUE str_type,
+static void literal_init(literal *self, Lexer *lexer, VALUE str_type,
                          VALUE delimiter, long str_s, long heredoc_e, int indent,
                          int dedent_body, int label_allowed)
 {

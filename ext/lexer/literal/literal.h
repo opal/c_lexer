@@ -6,7 +6,7 @@ typedef struct literal literal;
 #include "lexer.h"
 
 struct literal {
-  struct lexer_state *lexer;
+  struct Lexer *lexer;
   VALUE buffer;
   long buffer_s;
   long buffer_e;
@@ -35,7 +35,7 @@ struct literal {
   int dedent_level;
 };
 
-static void literal_init(literal*, lexer_state*, VALUE, VALUE, long, long, int, int, int);
+static void literal_init(literal*, Lexer*, VALUE, VALUE, long, long, int, int, int);
 static str_type literal_string_to_str_type(VALUE);
 static VALUE literal_str_type_to_string(str_type);
 static void literal_set_start_tok_and_interpolate(literal*, str_type);

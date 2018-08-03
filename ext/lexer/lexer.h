@@ -1,11 +1,11 @@
 #ifndef LEXER_H
 #define LEXER_H
 
-typedef struct lexer_state lexer_state;
+typedef struct Lexer Lexer;
 #include "literal/literal.h"
 define_stack_type(lit_stack, literal, {0});
 
-struct lexer_state {
+struct Lexer {
   int cs;               /* DFA state */
   long p;                /* stream position */
   long pe;               /* end-of-stream position */
@@ -56,14 +56,14 @@ static void lexer_mark(void*);
 static void lexer_dealloc(void*);
 static VALUE lexer_reset(int, VALUE*, VALUE);
 
-static void emit_token(lexer_state*, VALUE, VALUE, long, long);
-static void emit_comment(lexer_state*, long, long);
-static void emit_do(lexer_state*, int, long, long);
+static void emit_token(Lexer*, VALUE, VALUE, long, long);
+static void emit_comment(Lexer*, long, long);
+static void emit_do(Lexer*, int, long, long);
 
-static VALUE tok(lexer_state*, long, long);
-static VALUE range(lexer_state*, long, long);
-static void diagnostic(lexer_state*, VALUE, VALUE, VALUE, VALUE, VALUE);
-static int get_codepoint(lexer_state*, long);
+static VALUE tok(Lexer*, long, long);
+static VALUE range(Lexer*, long, long);
+static void diagnostic(Lexer*, VALUE, VALUE, VALUE, VALUE, VALUE);
+static int get_codepoint(Lexer*, long);
 static int arg_or_cmdarg(int);
 static int is_nthref(VALUE);
 static int is_backref(VALUE);
@@ -74,18 +74,18 @@ static VALUE find_unknown_options(VALUE);
 static int bad_cvar_name(VALUE);
 static int bad_ivar_name(VALUE);
 static int find_8_or_9(VALUE str);
-static void emit_int(lexer_state*, VALUE, long, long);
-static void emit_rational(lexer_state*, VALUE, long, long);
-static void emit_complex(lexer_state*, VALUE, long, long);
-static void emit_complex_rational(lexer_state*, VALUE, long, long);
-static void emit_float(lexer_state*, VALUE, long, long);
-static void emit_complex_float(lexer_state*, VALUE, long, long);
-static void emit_int_followed_by_if(lexer_state*, VALUE, long, long);
-static void emit_int_followed_by_rescue(lexer_state*, VALUE, long, long);
-static void emit_float_followed_by_if(lexer_state*, VALUE, long, long);
-static void emit_float_followed_by_rescue(lexer_state*, VALUE, long, long);
-static int push_literal(lexer_state*, VALUE, VALUE, long, long, int, int, int);
-static int pop_literal(lexer_state*);
+static void emit_int(Lexer*, VALUE, long, long);
+static void emit_rational(Lexer*, VALUE, long, long);
+static void emit_complex(Lexer*, VALUE, long, long);
+static void emit_complex_rational(Lexer*, VALUE, long, long);
+static void emit_float(Lexer*, VALUE, long, long);
+static void emit_complex_float(Lexer*, VALUE, long, long);
+static void emit_int_followed_by_if(Lexer*, VALUE, long, long);
+static void emit_int_followed_by_rescue(Lexer*, VALUE, long, long);
+static void emit_float_followed_by_if(Lexer*, VALUE, long, long);
+static void emit_float_followed_by_rescue(Lexer*, VALUE, long, long);
+static int push_literal(Lexer*, VALUE, VALUE, long, long, int, int, int);
+static int pop_literal(Lexer*);
 static VALUE array_last(VALUE);
 static VALUE unescape_char(char);
 static VALUE escape_char(VALUE);
@@ -93,19 +93,19 @@ static inline int str_start_with_p(VALUE, const char*);
 static inline int str_end_with_p(VALUE, const char*);
 static inline void force_encoding(VALUE, VALUE);
 
-#define emit(type) emit_token(state, type, tok(state, ts, te), ts, te)
+#define emit(type) emit_token(lexer, type, tok(lexer, ts, te), ts, te)
 
 #define def_lexer_attr_reader(name) \
   static VALUE lexer_get_ ## name(VALUE self) { \
-    lexer_state *state; \
-    Data_Get_Struct(self, lexer_state, state); \
-    return state->name; }
+    Lexer *lexer; \
+    Data_Get_Struct(self, Lexer, lexer); \
+    return lexer->name; }
 
 #define def_lexer_attr_writer(name) \
   static VALUE lexer_set_ ## name(VALUE self, VALUE val) { \
-    lexer_state *state; \
-    Data_Get_Struct(self, lexer_state, state); \
-    return state->name = val; } \
+    Lexer *lexer; \
+    Data_Get_Struct(self, Lexer, lexer); \
+    return lexer->name = val; } \
 
 #define def_lexer_attribute(name) \
     def_lexer_attr_reader(name) \
