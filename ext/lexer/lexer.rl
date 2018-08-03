@@ -9,7 +9,7 @@
 #include "stack_state/stack_state.h"
 #include "lexer.h"
 
-#define INIT_LEXER_STATE(self, lexer) Lexer *lexer; Data_Get_Struct(self, Lexer, lexer);
+#define GET_LEXER(self) Data_Get_Struct(self, Lexer, lexer)
 #define STATIC_ENV_DECLARED(name) \
   lexer->static_env != Qnil && RTEST(rb_funcall(lexer->static_env, rb_intern("declared?"), 1, name))
 
@@ -87,7 +87,7 @@ static void lexer_dealloc(void *ptr)
 
 static VALUE lexer_initialize(VALUE self, VALUE version)
 {
-  INIT_LEXER_STATE(self, lexer);
+  Lexer* lexer = GET_LEXER(self);
 
   lexer->version = NUM2INT(version);
 
@@ -96,7 +96,7 @@ static VALUE lexer_initialize(VALUE self, VALUE version)
 
 static VALUE lexer_reset(int argc, VALUE *argv, VALUE self)
 {
-  INIT_LEXER_STATE(self, lexer);
+  Lexer* lexer = GET_LEXER(self);
 
   VALUE reset_state;
   rb_scan_args(argc, argv, "01", &reset_state);
@@ -161,7 +161,7 @@ static VALUE lexer_reset(int argc, VALUE *argv, VALUE self)
 
 static VALUE lexer_set_source_buffer(VALUE self, VALUE buffer)
 {
-  INIT_LEXER_STATE(self, lexer);
+  Lexer* lexer = GET_LEXER(self);
 
   lexer->source_buffer = buffer;
 
@@ -193,7 +193,7 @@ static VALUE lexer_set_source_buffer(VALUE self, VALUE buffer)
 
 static VALUE lexer_get_state(VALUE self)
 {
-  INIT_LEXER_STATE(self, lexer);
+  Lexer* lexer = GET_LEXER(self);
 
   switch (lexer->cs) {
   case lex_en_line_begin:    return ID2SYM(rb_intern("line_begin"));
@@ -220,7 +220,7 @@ static VALUE lexer_get_state(VALUE self)
 
 static VALUE lexer_set_state(VALUE self, VALUE state_sym)
 {
-  INIT_LEXER_STATE(self, lexer);
+  Lexer* lexer = GET_LEXER(self);
   const char *state_name = rb_id2name(SYM2ID(state_sym));
 
   if (strcmp(state_name, "line_begin") == 0)
@@ -264,7 +264,7 @@ static VALUE lexer_set_state(VALUE self, VALUE state_sym)
 
 static VALUE lexer_push_cmdarg(VALUE self)
 {
-  INIT_LEXER_STATE(self, lexer);
+  Lexer* lexer = GET_LEXER(self);
   ss_stack_push(&lexer->cmdarg_stack, lexer->cmdarg);
   lexer->cmdarg = 0;
   return Qnil;
@@ -272,14 +272,14 @@ static VALUE lexer_push_cmdarg(VALUE self)
 
 static VALUE lexer_pop_cmdarg(VALUE self)
 {
-  INIT_LEXER_STATE(self, lexer);
+  Lexer* lexer = GET_LEXER(self);
   lexer->cmdarg = ss_stack_pop(&lexer->cmdarg_stack);
   return Qnil;
 }
 
 static VALUE lexer_push_cond(VALUE self)
 {
-  INIT_LEXER_STATE(self, lexer);
+  Lexer* lexer = GET_LEXER(self);
   ss_stack_push(&lexer->cond_stack, lexer->cond);
   lexer->cond = 0;
   return Qnil;
@@ -287,27 +287,27 @@ static VALUE lexer_push_cond(VALUE self)
 
 static VALUE lexer_pop_cond(VALUE self)
 {
-  INIT_LEXER_STATE(self, lexer);
+  Lexer* lexer = GET_LEXER(self);
   lexer->cond = ss_stack_pop(&lexer->cond_stack);
   return Qnil;
 }
 
 static VALUE lexer_get_in_kwarg(VALUE self)
 {
-  INIT_LEXER_STATE(self, lexer);
+  Lexer* lexer = GET_LEXER(self);
   return lexer->in_kwarg ? Qtrue : Qfalse;
 }
 
 static VALUE lexer_set_in_kwarg(VALUE self, VALUE val)
 {
-  INIT_LEXER_STATE(self, lexer);
+  Lexer* lexer = GET_LEXER(self);
   lexer->in_kwarg = RTEST(val) ? 1 : 0;
   return val;
 }
 
 static VALUE lexer_get_dedent_level(VALUE self)
 {
-  INIT_LEXER_STATE(self, lexer);
+  Lexer* lexer = GET_LEXER(self);
   int result = lexer->dedent_level;
   lexer->dedent_level = -1;
   if (result == -1)
