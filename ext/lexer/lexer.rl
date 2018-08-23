@@ -2382,8 +2382,8 @@ void Init_lexer()
         fnext expr_arg; fbreak;
       };
 
-      '*' => {
-        emit(tSTAR2);
+      '*' | '=>' => {
+        emit_table_PUNCTUATION(lexer, tok(lexer, ts, te), ts, te);
         fgoto expr_value;
       };
 
