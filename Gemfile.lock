@@ -1,14 +1,14 @@
 PATH
   remote: .
   specs:
-    c_lexer (2.5.1.2.0)
+    c_lexer (2.5.3.0.0)
       ast (~> 2.4.0)
-      parser (= 2.5.1.2)
+      parser (= 2.5.3.0)
 
 PATH
   remote: vendor/parser
   specs:
-    parser (2.5.1.2)
+    parser (2.5.3.0)
       ast (~> 2.4.0)
 
 GEM
