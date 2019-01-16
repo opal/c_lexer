@@ -369,3 +369,23 @@ inline int newline_char_p(VALUE str)
 {
   return RTEST(rb_str_equal(str, rb_str_new2("\n")));
 }
+
+static int literal_supports_line_continuation_via_slash_p(literal *lit)
+{
+  if (literal_heredoc_p(lit) || literal_regexp_p(lit)) {
+    return 1;
+  }
+
+  switch (lit->str_type) {
+  case DOUBLE_QUOTE:
+  case PERCENT_Q:
+  case BIG_PERCENT_Q:
+  case BARE_PERCENT:
+  case SYM_DOUBLE_QUOT:
+  case PERCENT_X:
+  case BACKTICK:
+    return 1;
+  default:
+    return 0;
+  }
+}

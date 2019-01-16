@@ -1314,18 +1314,16 @@ void Init_lexer()
         literal_extend_string(current_literal, escaped_char, ts, te);
       }
     } else {
-      if (literal_regexp_p(current_literal)) {
+      if (literal_squiggly_heredoc_p(current_literal) && newline_char_p(escaped_char)) {
+        literal_extend_string(current_literal, tok(lexer, ts, te), ts, te);
+      } else if (literal_supports_line_continuation_via_slash_p(current_literal) && newline_char_p(escaped_char)) {
         VALUE token = tok(lexer, ts, te);
         rb_funcall(token, rb_intern("gsub!"), 2, escaped_newline, blank_string);
         literal_extend_string(current_literal, token, ts, te);
-      } else if (literal_heredoc_p(current_literal) && newline_char_p(escaped_char)) {
-        if (literal_squiggly_heredoc_p(current_literal)) {
-          literal_extend_string(current_literal, tok(lexer, ts, te), ts, te);
-        } else {
-          VALUE token = tok(lexer, ts, te);
-          rb_funcall(token, rb_intern("gsub!"), 2, escaped_newline, blank_string);
-          literal_extend_string(current_literal, token, ts, te);
-        }
+      } else if (literal_regexp_p(current_literal)) {
+        VALUE token = tok(lexer, ts, te);
+        rb_funcall(token, rb_intern("gsub!"), 2, escaped_newline, blank_string);
+        literal_extend_string(current_literal, token, ts, te);
       } else if (lexer->escape == Qnil) {
         literal_extend_string(current_literal, tok(lexer, ts, te), ts, te);
       } else {
