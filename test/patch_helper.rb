@@ -1,4 +1,5 @@
 require 'parser/ruby25'
+require 'parser/ruby26'
 require 'c_lexer'
 
 module Parser
@@ -10,4 +11,7 @@ module Parser
 
   remove_const(:Ruby25)
   Ruby25 = Ruby25WithCLexer
+
+  remove_const(:Ruby26)
+  Ruby26 = Ruby26WithCLexer
 end

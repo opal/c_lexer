@@ -19,9 +19,10 @@ $ gem install c_lexer
 
 `c_lexer` doesn't change any parser classes.
 
-It provides 2 classes:
+It provides 3 classes:
 + `Parser::CLexer` (C version of the lexer)
 + `Parser::Ruby25WithCLexer` (a subclass of `parser/ruby25` that uses `Parser::CLexer` for lexing)
++ `Parser::Ruby26WithCLexer` (a subclass of `parser/ruby26` that uses `Parser::CLexer` for lexing)
 
 If you want `CLexer` to be a default lexer you can use the following patch:
 
@@ -35,13 +36,16 @@ module Parser
   remove_const(:Lexer)
   Lexer = CLexer
   Lexer::Dedenter = dedenter
+
+  remove_const(:Ruby26)
+  Ruby26 = Ruby26WithCLexer
 end
 ```
 
 ## Versioning
 
 `c_lexer` follows versioning of the `parser` gem to avoid confusions like
-"which version of `c_lexer` should be used with the `parser vX.Y.Z`". For `parser 2.5.1.0` you should use `c_lexer 2.5.1.0`.
+"which version of `c_lexer` should be used with the `parser vX.Y.Z`". For `parser 2.5.1.0` you should use `c_lexer 2.5.1.0.X`.
 
 `c_lexer` supports all versions of `parser` starting from `2.5.1.0`
 
