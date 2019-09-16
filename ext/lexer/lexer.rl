@@ -1412,13 +1412,8 @@ void Init_lexer()
       if (literal_end_interp_brace_and_try_closing(current_literal)) {
         if (lexer->version == 18 || lexer->version == 19) {
           emit_token(lexer, tRCURLY, rb_str_new2("}"), p - 1, p);
-          if (lexer->version < 24) {
-            stack_state_lexpop(&lexer->cond);
-            stack_state_lexpop(&lexer->cmdarg);
-          } else {
-            stack_state_pop(&lexer->cond);
-            stack_state_pop(&lexer->cmdarg);
-          }
+          stack_state_pop(&lexer->cond);
+          stack_state_pop(&lexer->cmdarg);
         } else {
           emit_token(lexer, tSTRING_DEND, rb_str_new2("}"), p - 1, p);
         }
