@@ -55,6 +55,7 @@ static void emit_table_PUNCTUATION(Lexer *lexer, VALUE value, long start, long e
   try_mapping("`", tBACK_REF2);
   try_mapping("!@", tBANG);
   try_mapping("&.", tANDDOT);
+  try_mapping(".:", tMETHREF);
 
   invalid_mapping;
 }

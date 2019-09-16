@@ -16,5 +16,5 @@ module Parser
   Ruby26 = Ruby26WithCLexer
 
   remove_const(:Ruby27)
-  Ruby27 = Ruby26WithCLexer
+  Ruby27 = Ruby27WithCLexer
 end

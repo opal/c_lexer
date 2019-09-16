@@ -827,11 +827,12 @@ void Init_lexer()
   init_symbol(tLCURLY);
   init_symbol(tLEQ);
   init_symbol(tLPAREN);
-  init_symbol(tLPAREN_ARG);
   init_symbol(tLPAREN2);
+  init_symbol(tLPAREN_ARG);
   init_symbol(tLSHFT);
   init_symbol(tLT);
   init_symbol(tMATCH);
+  init_symbol(tMETHREF);
   init_symbol(tMINUS);
   init_symbol(tNEQ);
   init_symbol(tNL);
@@ -843,8 +844,8 @@ void Init_lexer()
   init_symbol(tPIPE);
   init_symbol(tPLUS);
   init_symbol(tPOW);
-  init_symbol(tQWORDS_BEG);
   init_symbol(tQSYMBOLS_BEG);
+  init_symbol(tQWORDS_BEG);
   init_symbol(tRATIONAL);
   init_symbol(tRBRACK);
   init_symbol(tRCURLY);
@@ -2359,7 +2360,13 @@ void Init_lexer()
       global_var | class_var_v | instance_var_v
       => { p = ts - 1; fcall expr_variable; };
 
-      '.' | '&.' | '::'
+      '.:' w_space+
+      => { emit_token(lexer, tDOT, tok(lexer, ts, ts + 1), ts, ts + 1);
+           emit_token(lexer, tCOLON, tok(lexer, ts + 1, ts + 2), ts + 1, ts + 2);
+           p = p - (te - ts) + 2;
+           fnext expr_dot; fbreak; };
+
+      '.:' | '.' | '&.' | '::'
       => { emit_table_PUNCTUATION(lexer, tok(lexer, ts, te), ts, te);
            fnext expr_dot; fbreak; };
 
