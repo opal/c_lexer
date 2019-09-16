@@ -35,6 +35,9 @@ struct Lexer {
   lit_stack literal_stack;
 
   int version;
+
+  int command_start;
+
   int in_kwarg;
   int force_utf32;
 

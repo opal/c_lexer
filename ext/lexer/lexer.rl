@@ -154,7 +154,7 @@ static VALUE lexer_reset(int argc, VALUE *argv, VALUE self)
 
   lexer->dedent_level = -1;
 
-  // @command_state is a local variable
+  lexer->command_start = 1;
 
   lexer->in_kwarg     = 0;
 
@@ -341,7 +341,7 @@ static VALUE lexer_set_force_utf32(VALUE self, VALUE arg)
 
 static VALUE lexer_advance(VALUE self)
 {
-  int cs, act = 0, top, command_state;
+  int cs, act = 0, top, cmd_state;
   int num_base = 0;
   long p, pe, eof, ts = 0, te = 0, tm = 0, sharp_s = 0, heredoc_e = 0;
   long num_digits_s = 0, num_suffix_s = 0;
@@ -363,7 +363,8 @@ static VALUE lexer_advance(VALUE self)
   stack = lexer->cs_stack;
   top = lexer->cs_stack_top;
 
-  command_state = (cs == lex_en_expr_value || cs == lex_en_line_begin);
+  cmd_state = lexer->command_start;
+  lexer->command_start = 0;
 
   %%{
     write exec;
@@ -467,9 +468,9 @@ static int get_codepoint(Lexer *lexer, long p)
     return NUM2INT(rb_ary_entry(lexer->source_pts, p));
 }
 
-static int arg_or_cmdarg(int command_state)
+static int arg_or_cmdarg(int cmd_state)
 {
-  if (command_state) {
+  if (cmd_state) {
     return lex_en_expr_cmdarg;
   } else {
     return lex_en_expr_arg;
@@ -1494,6 +1495,7 @@ void Init_lexer()
     }
 
     literal_start_interp_brace(current_literal);
+    lexer->command_start = 1;
     fnext expr_value;
     fbreak;
   }
@@ -1636,6 +1638,10 @@ void Init_lexer()
     stack_state_push(&lexer->cond, 0);
     stack_state_push(&lexer->cmdarg, 0);
     lexer->paren_nest += 1;
+
+    if (lexer->version == 18) {
+      lexer->command_start = 1;
+    }
   };
 
   e_rparen = ')' % {
@@ -1649,7 +1655,7 @@ void Init_lexer()
     if (STATIC_ENV_DECLARED(str)) {
       fnext expr_endfn; fbreak;
     } else {
-      fnext *arg_or_cmdarg(command_state); fbreak;
+      fnext *arg_or_cmdarg(cmd_state); fbreak;
     }
   }
 
@@ -1794,13 +1800,17 @@ void Init_lexer()
   *|;
 
   expr_dot := |*
-      constant => { emit(tCONSTANT); fnext *arg_or_cmdarg(command_state); fbreak; };
+      constant
+      => { emit(tCONSTANT);
+           fnext *arg_or_cmdarg(cmd_state); fbreak; };
 
-      call_or_var => { emit(tIDENTIFIER); fnext *arg_or_cmdarg(command_state); fbreak; };
+      call_or_var
+      => { emit(tIDENTIFIER);
+           fnext *arg_or_cmdarg(cmd_state); fbreak; };
 
       bareword ambiguous_fid_suffix
       => { emit_token(lexer, tFID, tok(lexer, ts, tm), ts, tm);
-           fnext *arg_or_cmdarg(command_state); p = tm - 1; fbreak; };
+           fnext *arg_or_cmdarg(cmd_state); p = tm - 1; fbreak; };
 
       operator_fname      |
       operator_arithmetic |
@@ -1842,6 +1852,7 @@ void Init_lexer()
         } else {
           emit_token(lexer, tLCURLY, rb_str_new2("{"), te - 1, te);
         }
+        lexer->command_start = 1;
         fnext expr_value; fbreak;
       };
 
@@ -1939,6 +1950,7 @@ void Init_lexer()
         } else {
           emit_token(lexer, tLBRACE_ARG, rb_str_new2("{"), te - 1, te);
         }
+        lexer->command_start = 1;
         fnext expr_value; fbreak;
       };
 
@@ -2179,6 +2191,7 @@ void Init_lexer()
         VALUE val = array_last(lexer->lambda_stack);
         if (val != Qnil && NUM2INT(val) == lexer->paren_nest) {
           rb_ary_pop(lexer->lambda_stack);
+          lexer->command_start = 1;
           emit(tLAMBEG);
         } else {
           emit(tLBRACE);
@@ -2208,6 +2221,7 @@ void Init_lexer()
 
       keyword_modifier
       => { emit_table_KEYWORDS_BEGIN(lexer, tok(lexer, ts, te), ts, te);
+           lexer->command_start = 1;
            fnext expr_value; fbreak; };
 
       label ( any - ':' )
@@ -2224,7 +2238,7 @@ void Init_lexer()
           if (STATIC_ENV_DECLARED(ident)) {
             fnext expr_end;
           } else {
-            fnext *arg_or_cmdarg(command_state);
+            fnext *arg_or_cmdarg(cmd_state);
           }
         } else {
           emit_token(lexer, tLABEL, tok(lexer, ts, te - 2), ts, te - 1);
@@ -2343,6 +2357,7 @@ void Init_lexer()
         } else {
           emit(tLCURLY);
         }
+        lexer->command_start = 1;
         fnext expr_value; fbreak;
       };
 
@@ -2354,6 +2369,7 @@ void Init_lexer()
         } else {
           emit_do(lexer, 0, ts, te);
         }
+        lexer->command_start = 1;
         fnext expr_value; fbreak;
       };
 
@@ -2372,6 +2388,7 @@ void Init_lexer()
 
       keyword_with_value
       => { emit_table_KEYWORDS(lexer, tok(lexer, ts, te), ts, te);
+           lexer->command_start = 1;
            fnext expr_value; fbreak; };
 
       keyword_with_mid
@@ -2398,7 +2415,7 @@ void Init_lexer()
           if (STATIC_ENV_DECLARED(str)) {
             fnext expr_end;
           } else {
-            fnext *arg_or_cmdarg(command_state);
+            fnext *arg_or_cmdarg(cmd_state);
           }
         } else {
           emit(k__ENCODING__);
@@ -2505,7 +2522,7 @@ void Init_lexer()
         fgoto *push_literal(lexer, type, delimiter, ts, 0, 0, 0, 1);
       };
 
-      constant => { emit(tCONSTANT); fnext *arg_or_cmdarg(command_state); fbreak; };
+      constant => { emit(tCONSTANT); fnext *arg_or_cmdarg(cmd_state); fbreak; };
 
       constant ambiguous_const_suffix => {
         emit_token(lexer, tCONSTANT, tok(lexer, ts, tm), ts, tm);
@@ -2623,7 +2640,10 @@ void Init_lexer()
 
       w_newline => { fgoto leading_dot; };
 
-      ';' => { emit(tSEMI); fnext expr_value; fbreak; };
+      ';'
+      => { emit(tSEMI);
+           lexer->command_start = 1;
+           fnext expr_value; fbreak; };
 
       '\\' c_line {
         diagnostic(lexer, severity_error, bare_backslash, Qnil,
@@ -2676,7 +2696,7 @@ void Init_lexer()
 
       '__END__' ( c_eol - zlen ) => { p = pe - 3; };
 
-      c_any => { fhold; fgoto expr_value; };
+      c_any => { cmd_state = 1; fhold; fgoto expr_value; };
 
       c_eof => do_eof;
   *|;
