@@ -1,6 +1,7 @@
 require 'c_lexer/version'
 require 'parser/ruby25'
 require 'parser/ruby26'
+require 'parser/ruby27'
 
 require_relative 'lexer'
 
@@ -77,6 +78,15 @@ module Parser
   end
 
   class Ruby26WithCLexer < Ruby26
+    def initialize(builder=Parser::Builders::Default.new)
+      super(builder)
+      @lexer = ::Parser::CLexer.new(version)
+      @lexer.diagnostics = @diagnostics
+      @lexer.static_env  = @static_env
+    end
+  end
+
+  class Ruby27WithCLexer < Ruby27
     def initialize(builder=Parser::Builders::Default.new)
       super(builder)
       @lexer = ::Parser::CLexer.new(version)
