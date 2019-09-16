@@ -890,6 +890,8 @@ void Init_lexer()
   init_symbol(embedded_document);
   init_symbol(empty_numeric);
   init_symbol(escape_eof);
+  init_symbol(heredoc_id_ends_with_nl);
+  init_symbol(heredoc_id_has_newline);
   init_symbol(incomplete_escape);
   init_symbol(invalid_escape);
   init_symbol(invalid_escape_use);
@@ -897,8 +899,6 @@ void Init_lexer()
   init_symbol(invalid_octal);
   init_symbol(invalid_unicode_escape);
   init_symbol(ivar_name);
-  init_symbol(heredoc_id_ends_with_nl);
-  init_symbol(heredoc_id_has_newline);
   init_symbol(no_dot_digit_literal);
   init_symbol(prefix);
   init_symbol(regexp_options);
@@ -907,6 +907,7 @@ void Init_lexer()
   init_symbol(unexpected);
   init_symbol(unexpected_percent_str);
   init_symbol(unicode_point_too_large);
+  init_symbol(unterminated_heredoc_id);
   init_symbol(unterminated_unicode);
 
   VALUE m_Parser = rb_define_module("Parser");
@@ -973,6 +974,8 @@ void Init_lexer()
   rb_gc_register_address(&newline);
   escaped_newline = rb_obj_freeze(rb_str_new2("\\\n"));
   rb_gc_register_address(&escaped_newline);
+  slash_r = rb_obj_freeze(rb_str_new2("\r"));
+  rb_gc_register_address(&slash_r);
 
   if (rb_const_defined(rb_cObject, rb_intern("Encoding"))) {
     VALUE encoding = rb_const_get(rb_cObject, rb_intern("Encoding"));
@@ -1960,7 +1963,15 @@ void Init_lexer()
 
         VALUE delimiter = tok(lexer, rng_s, rng_e);
 
-        if (lexer->version >= 24) {
+        if (lexer->version >= 27) {
+          int newlines_count = NUM2INT(rb_funcall(delimiter, rb_intern("count"), 1, newline));
+          int slash_r_count = NUM2INT(rb_funcall(delimiter, rb_intern("count"), 1, slash_r));
+
+          if (newlines_count > 0 || slash_r_count > 0) {
+            diagnostic(lexer, severity_error, unterminated_heredoc_id, Qnil,
+                   range(lexer, ts, ts + 1), empty_array);
+          }
+        } else if (lexer->version >= 24) {
           if (NUM2INT(rb_funcall(delimiter, rb_intern("count"), 1, newline)) > 0) {
             if (str_end_with_p(delimiter, "\n")) {
               diagnostic(lexer, warning, heredoc_id_ends_with_nl, Qnil,
@@ -1983,6 +1994,21 @@ void Init_lexer()
                               dedent_body, 0);
           p = lexer->herebody_s - 1;
         }
+      };
+
+      # Escaped unterminated heredoc start
+      # <<'END  | <<"END  | <<`END  |
+      # <<-'END | <<-"END | <<-`END |
+      # <<~'END | <<~"END | <<~`END
+      #
+      # If the heredoc is terminated the rule above should handle it
+      '<<' [~\-]?
+        ('"' (any - c_nl - '"')*
+        |"'" (any - c_nl - "'")*
+        |"`" (any - c_nl - "`")
+        )
+      => {
+        diagnostic(lexer, severity_error, unterminated_heredoc_id, Qnil, range(lexer, ts, ts + 1), empty_array);
       };
 
       ':' ('&&' | '||') => {
