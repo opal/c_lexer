@@ -352,7 +352,7 @@ static VALUE lexer_advance(VALUE self)
   long ident_ts = 0, ident_te = 0;
   long numeric_s = 0;
   Data_Get_Struct(self, Lexer, lexer);
-  VALUE diag_msg;
+  VALUE diag_msg = Qnil;
 
   if (RARRAY_LEN(lexer->token_queue) > 0)
     return rb_ary_shift(lexer->token_queue);
