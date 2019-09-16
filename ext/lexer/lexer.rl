@@ -352,6 +352,7 @@ static VALUE lexer_advance(VALUE self)
   long ident_ts = 0, ident_te = 0;
   long numeric_s = 0;
   Data_Get_Struct(self, Lexer, lexer);
+  VALUE diag_msg;
 
   if (RARRAY_LEN(lexer->token_queue) > 0)
     return rb_ary_shift(lexer->token_queue);
@@ -2108,6 +2109,23 @@ void Init_lexer()
         emit_token(lexer, tSYMBOL, tok(lexer, ts + 1, te), ts, te);
         fnext expr_end; fbreak;
       };
+
+      ':' ( '@'  %{ tm = p - 1; diag_msg = ivar_name; }
+          | '@@' %{ tm = p - 2; diag_msg = cvar_name; }
+          ) [0-9]*
+      => {
+        if (lexer->version >= 27) {
+          VALUE hash = rb_hash_new();
+          rb_hash_aset(hash, ID2SYM(rb_intern("name")), tok(lexer, tm, te));
+          diagnostic(lexer, severity_error, diag_msg, hash, range(lexer, tm, te), empty_array);
+        } else {
+          emit_token(lexer, tCOLON, tok(lexer, ts, ts + 1), ts, ts + 1);
+          p = ts;
+        }
+
+        fnext expr_end; fbreak;
+      };
+
 
       '?' ( e_bs ( escape - ( '\u{' (xdigit+ [ \t]+)+ xdigit+ '}' ))
           | (c_any - c_space_nl - e_bs) % { lexer->escape = Qnil; }
