@@ -788,6 +788,8 @@ void Init_lexer()
   init_symbol(tASSOC);
   init_symbol(tBACK_REF);
   init_symbol(tBACK_REF2);
+  init_symbol(tBDOT2);
+  init_symbol(tBDOT3);
   init_symbol(tBANG);
   init_symbol(tCARET);
   init_symbol(tCHARACTER);
@@ -2103,6 +2105,30 @@ void Init_lexer()
         }
 
         fbreak;
+      };
+
+      # RUBY 2.7 BEGINLESS RANGE
+
+      '..'
+      => {
+        if (lexer->version >= 27) {
+          emit(tBDOT2);
+        } else {
+          emit(tDOT2);
+        }
+
+        fnext expr_beg; fbreak;
+      };
+
+      '...'
+      => {
+        if (lexer->version >= 27) {
+          emit(tBDOT3);
+        } else {
+          emit(tDOT3);
+        }
+
+        fnext expr_beg; fbreak;
       };
 
       bareword ambiguous_ident_suffix | keyword => { p = ts - 1; fgoto expr_end; };
