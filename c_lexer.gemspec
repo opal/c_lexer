@@ -22,7 +22,7 @@ Gem::Specification.new do |spec|
   spec.extensions    = ['ext/lexer/extconf.rb']
 
   spec.add_dependency             'ast',           '~> 2.4.0'
-  spec.add_dependency             'parser',        '= 2.6.2.0'
+  spec.add_dependency             'parser',        '= 2.6.2.1'
 
   spec.add_development_dependency 'bundler'
   spec.add_development_dependency 'rake',          '~> 10.0'
