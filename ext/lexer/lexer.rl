@@ -12,6 +12,7 @@
 #define GET_LEXER(self) Data_Get_Struct(self, Lexer, lexer)
 #define STATIC_ENV_DECLARED(name) \
   lexer->static_env != Qnil && RTEST(rb_funcall(lexer->static_env, rb_intern("declared?"), 1, name))
+#define NUMPARAM_MAX 100
 
 #include "stack_state/cmdarg.h"
 #include "stack_state/cond.h"
@@ -44,6 +45,7 @@ static VALUE lexer_alloc(VALUE klass)
   lexer->comments      = Qnil;
   lexer->encoding      = Qnil;
   lexer->escape        = Qnil;
+  lexer->max_numparam_stack = Qnil;
 
   ss_stack_init(&lexer->cond_stack);
   ss_stack_init(&lexer->cmdarg_stack);
@@ -66,6 +68,7 @@ static void lexer_mark(void *ptr)
   rb_gc_mark(lexer->comments);
   rb_gc_mark(lexer->encoding);
   rb_gc_mark(lexer->escape);
+  rb_gc_mark(lexer->max_numparam_stack);
 
   for (literal *lit = lexer->literal_stack.bottom; lit < lexer->literal_stack.top; lit++) {
     rb_gc_mark(lit->buffer);
@@ -156,6 +159,8 @@ static VALUE lexer_reset(int argc, VALUE *argv, VALUE self)
   lexer->in_kwarg     = 0;
 
   lexer->cs_before_block_comment = lex_en_line_begin;
+
+  lexer->max_numparam_stack = rb_class_new_instance(0, NULL, max_numparam_stack_klass) ;
 
   return self;
 }
@@ -304,6 +309,18 @@ static VALUE lexer_set_in_kwarg(VALUE self, VALUE val)
   Lexer* lexer = GET_LEXER(self);
   lexer->in_kwarg = RTEST(val) ? 1 : 0;
   return val;
+}
+
+static VALUE lexer_max_numparam_stack(VALUE self)
+{
+  Lexer* lexer = GET_LEXER(self);
+  return lexer->max_numparam_stack;
+}
+
+static VALUE lexer_max_numparam(VALUE self)
+{
+  Lexer* lexer = GET_LEXER(self);
+  return rb_funcall(lexer->max_numparam_stack, rb_intern("top"), 0);
 }
 
 static VALUE lexer_get_dedent_level(VALUE self)
@@ -788,9 +805,9 @@ void Init_lexer()
   init_symbol(tASSOC);
   init_symbol(tBACK_REF);
   init_symbol(tBACK_REF2);
+  init_symbol(tBANG);
   init_symbol(tBDOT2);
   init_symbol(tBDOT3);
-  init_symbol(tBANG);
   init_symbol(tCARET);
   init_symbol(tCHARACTER);
   init_symbol(tCMP);
@@ -841,6 +858,7 @@ void Init_lexer()
   init_symbol(tNL);
   init_symbol(tNMATCH);
   init_symbol(tNTH_REF);
+  init_symbol(tNUMPARAM);
   init_symbol(tOP_ASGN);
   init_symbol(tOROP);
   init_symbol(tPERCENT);
@@ -899,10 +917,14 @@ void Init_lexer()
   init_symbol(invalid_octal);
   init_symbol(invalid_unicode_escape);
   init_symbol(ivar_name);
+  init_symbol(leading_zero_in_numparam);
   init_symbol(no_dot_digit_literal);
+  init_symbol(numparam_outside_block);
+  init_symbol(ordinary_param_defined);
   init_symbol(prefix);
   init_symbol(regexp_options);
   init_symbol(string_eof);
+  init_symbol(too_large_numparam);
   init_symbol(trailing_in_number);
   init_symbol(unexpected);
   init_symbol(unexpected_percent_str);
@@ -959,12 +981,17 @@ void Init_lexer()
   rb_define_method(c_Lexer, "source_buffer=", lexer_set_source_buffer, 1);
   rb_define_method(c_Lexer, "force_utf32=",   lexer_set_force_utf32,   1);
 
+  rb_define_method(c_Lexer, "max_numparam_stack", lexer_max_numparam_stack, 0);
+  rb_define_method(c_Lexer, "max_numparam",       lexer_max_numparam,    0);
+
   rb_define_attr(c_Lexer, "context", 1, 1);
 
   VALUE m_Source   = rb_const_get(m_Parser, rb_intern("Source"));
   comment_klass    = rb_const_get(m_Source, rb_intern("Comment"));
   diagnostic_klass = rb_const_get(m_Parser, rb_intern("Diagnostic"));
   range_klass      = rb_const_get(m_Source, rb_intern("Range"));
+  VALUE lexer_class = rb_const_get(m_Parser, rb_intern("Lexer"));
+  max_numparam_stack_klass = rb_const_get(lexer_class, rb_intern("MaxNumparamStack"));
 
   empty_array = rb_obj_freeze(rb_ary_new2(0));
   rb_gc_register_address(&empty_array);
@@ -1636,6 +1663,47 @@ void Init_lexer()
         }
 
         emit(tCVAR);
+        fnext *stack[--top]; fbreak;
+      };
+
+      '@' [0-9]+
+      => {
+        VALUE token = tok(lexer, ts, te);
+
+        if (lexer->version < 27) {
+          VALUE hash = rb_hash_new();
+          rb_hash_aset(hash, ID2SYM(rb_intern("name")), token);
+          diagnostic(lexer, severity_error, ivar_name, hash, range(lexer, ts, te), empty_array);
+        }
+
+        VALUE value = rb_funcall(token, rb_intern("[]"), 1, rb_range_new(INT2NUM(1), INT2NUM(-1), 0));
+        VALUE int_value = rb_funcall(value, rb_intern("to_i"), 0);
+
+        if (*RSTRING_PTR(value) == '0') {
+          diagnostic(lexer, severity_error, leading_zero_in_numparam, Qnil, range(lexer, ts, te), empty_array);
+        }
+
+        if (FIX2INT(int_value) > NUMPARAM_MAX) {
+          diagnostic(lexer, severity_error, too_large_numparam, Qnil, range(lexer, ts, te), empty_array);
+        }
+
+        VALUE context = rb_iv_get(self, "@context");
+        int in_block  = RTEST(rb_funcall(context, rb_intern("in_block?"), 0));
+        int in_lambda = RTEST(rb_funcall(context, rb_intern("in_lambda?"), 0));
+
+        if (!in_block && !in_lambda) {
+          diagnostic(lexer, severity_error, numparam_outside_block, Qnil, range(lexer, ts, te), empty_array);
+        }
+
+        VALUE max_numparam_stack = lexer->max_numparam_stack;
+        int can_have_numparams = RTEST(rb_funcall(max_numparam_stack, rb_intern("can_have_numparams?"), 0));
+        if (!can_have_numparams) {
+          diagnostic(lexer, severity_error, ordinary_param_defined, Qnil, range(lexer, ts, te), empty_array);
+        }
+
+        rb_funcall(max_numparam_stack, rb_intern("register"), 1, int_value);
+
+        emit_token(lexer, tNUMPARAM, tok(lexer, ts + 1, te), ts, te);
         fnext *stack[--top]; fbreak;
       };
 

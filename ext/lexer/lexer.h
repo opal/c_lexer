@@ -50,6 +50,8 @@ struct Lexer {
   VALUE escape;
 
   int cs_before_block_comment;
+
+  VALUE max_numparam_stack;
 };
 
 static void lexer_mark(void*);
@@ -229,6 +231,7 @@ VALUE tNEQ;
 VALUE tNL;
 VALUE tNMATCH;
 VALUE tNTH_REF;
+VALUE tNUMPARAM;
 VALUE tOP_ASGN;
 VALUE tOROP;
 VALUE tPERCENT;
@@ -268,6 +271,7 @@ VALUE tXSTRING_BEG;
 VALUE comment_klass;
 VALUE diagnostic_klass;
 VALUE range_klass;
+VALUE max_numparam_stack_klass;
 
 VALUE severity_error;
 VALUE fatal;
@@ -290,10 +294,14 @@ VALUE invalid_hex_escape;
 VALUE invalid_octal;
 VALUE invalid_unicode_escape;
 VALUE ivar_name;
+VALUE leading_zero_in_numparam;
 VALUE no_dot_digit_literal;
+VALUE numparam_outside_block;
+VALUE ordinary_param_defined;
 VALUE prefix;
 VALUE regexp_options;
 VALUE string_eof;
+VALUE too_large_numparam;
 VALUE trailing_in_number;
 VALUE unexpected;
 VALUE unexpected_percent_str;

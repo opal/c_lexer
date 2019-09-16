@@ -74,6 +74,7 @@ module Parser
       @lexer = ::Parser::CLexer.new(version)
       @lexer.diagnostics = @diagnostics
       @lexer.static_env  = @static_env
+      @lexer.context     = @context
     end
   end
 
@@ -83,6 +84,7 @@ module Parser
       @lexer = ::Parser::CLexer.new(version)
       @lexer.diagnostics = @diagnostics
       @lexer.static_env  = @static_env
+      @lexer.context     = @context
     end
   end
 
@@ -92,6 +94,7 @@ module Parser
       @lexer = ::Parser::CLexer.new(version)
       @lexer.diagnostics = @diagnostics
       @lexer.static_env  = @static_env
+      @lexer.context     = @context
     end
   end
 end
