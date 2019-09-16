@@ -90,6 +90,7 @@ static VALUE lexer_initialize(VALUE self, VALUE version)
   Lexer* lexer = GET_LEXER(self);
 
   lexer->version = NUM2INT(version);
+  rb_iv_set(self, "@context", Qnil);
 
   return lexer_reset(0, NULL, self);
 }
@@ -954,6 +955,8 @@ void Init_lexer()
   rb_define_method(c_Lexer, "source_buffer",  lexer_get_source_buffer, 0);
   rb_define_method(c_Lexer, "source_buffer=", lexer_set_source_buffer, 1);
   rb_define_method(c_Lexer, "force_utf32=",   lexer_set_force_utf32,   1);
+
+  rb_define_attr(c_Lexer, "context", 1, 1);
 
   VALUE m_Source   = rb_const_get(m_Parser, rb_intern("Source"));
   comment_klass    = rb_const_get(m_Source, rb_intern("Comment"));
