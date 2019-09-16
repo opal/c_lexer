@@ -1201,6 +1201,21 @@ void Init_lexer()
                empty_array);
   }
 
+  action read_post_meta_or_ctrl_char {
+    VALUE codepoint = rb_funcall(lexer->source_buffer, rb_intern("slice"), 1, INT2NUM(p - 1));
+    lexer->escape = rb_funcall(codepoint, rb_intern("chr"), 0);
+    int codepoint_i = FIX2INT(rb_funcall(codepoint, rb_intern("ord"), 0));
+
+    if (
+      lexer->version >= 27 && (
+        (codepoint_i >= 0 && codepoint_i <= 8) ||
+        (codepoint_i >= 14 && codepoint_i <= 31)
+      )
+    ) {
+      diagnostic(lexer, fatal, invalid_escape, Qnil, range(lexer, ts, te), empty_array);
+    }
+  }
+
   action slash_c_char {
     char c = *RSTRING_PTR(lexer->escape) & 0x9f;
     lexer->escape = rb_str_new(&c, 1);
@@ -1215,13 +1230,13 @@ void Init_lexer()
 
   maybe_escaped_char = (
         '\\' c_any      %unescape_char
-    | ( c_any - [\\] )  % { lexer->escape = rb_str_substr(lexer->source, p - 1, 1); }
+    | ( c_any - [\\] )  %read_post_meta_or_ctrl_char
   );
 
   maybe_escaped_ctrl_char = (
         '\\' c_any      %unescape_char %slash_c_char
     |   '?'             % { lexer->escape = rb_str_new2("\x7f"); }
-    | ( c_any - [\\?] ) % { lexer->escape = rb_str_substr(lexer->source, p - 1, 1); } %slash_c_char
+    | ( c_any - [\\?] ) %read_post_meta_or_ctrl_char %slash_c_char
   );
 
   escape = (
