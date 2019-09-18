@@ -3,7 +3,11 @@ require 'parser/ruby25'
 require 'parser/ruby26'
 require 'parser/ruby27'
 
-require_relative 'lexer'
+begin
+  require_relative 'lexer'
+rescue LoadError
+  require_relative '../ext/lexer/lexer'
+end
 
 module Parser
   class CLexer
