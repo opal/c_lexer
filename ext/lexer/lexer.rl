@@ -1015,10 +1015,10 @@ void Init_lexer()
   }
 
   VALUE regex_str = rb_str_new2("\\r.*$");
-  cr_then_anything_to_eol = rb_class_new_instance(1, &regex_str, rb_cRegexp);
+  cr_then_anything_to_eol = rb_reg_new_str(regex_str, 0);
   rb_gc_register_address(&cr_then_anything_to_eol);
   regex_str = rb_str_new2("\\r+$");
-  crs_to_eol = rb_class_new_instance(1, &regex_str, rb_cRegexp);
+  crs_to_eol = rb_reg_new_str(regex_str, 0);
   rb_gc_register_address(&crs_to_eol);
 }
 
