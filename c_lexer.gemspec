@@ -31,6 +31,6 @@ Gem::Specification.new do |spec|
   # Parser dev dependencies
   spec.add_development_dependency 'minitest',      '~> 5.10'
   spec.add_development_dependency 'simplecov',     '~> 0.15.1'
-  spec.add_development_dependency 'racc',          '= 1.4.14'
+  spec.add_development_dependency 'racc',          '= 1.4.15'
   spec.add_development_dependency 'cliver',        '~> 0.3.2'
 end
