@@ -12,5 +12,4 @@
 ext/lexer/lexer.c
 lib/lexer.bundle
 lib/lexer.so
-
-test.rb
+Gemfile.lock
